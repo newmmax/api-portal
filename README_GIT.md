@@ -1,29 +1,33 @@
-# 🦀 FC Data API - Portal de Pedidos
+# 🦀 FC Data API - Portal de Pedidos + Cards Analytics
 
-**API REST em Rust para sistema de pedidos e analytics de franquias**
+**API REST em Rust para sistema de pedidos e analytics inteligentes de franquias**
 
 ## 🎯 Visão Geral
 
-API robusta desenvolvida em Rust usando Actix-Web 4, com integração dupla:
+API robusta desenvolvida em Rust usando Actix-Web 4, com integração tripla:
 - **PostgreSQL**: Dados históricos FC
-- **SQL Server**: Sistema de pedidos atual
+- **SQL Server Portal**: Sistema de pedidos atual
+- **SQL Server Protheus**: Dados ERP corporativo
 
 ## 🚀 Features Principais
 
+### 🔥 **CARDS ANALYTICS (NOVO!)**
+- **🔄 Card 01: Recompra Inteligente** - IA para sugestões baseadas em padrões históricos
+- **🏆 Card 02: Oportunidades na Rede** - Comparação com benchmark ABC da rede
+- **🎯 Algoritmos avançados** - Score inteligente e priorização automática
+- **💡 Insights personalizados** - Mensagens UX prontas para interface
+
 ### 📊 **Analytics Inteligentes**
-- **Card 01**: Recompra Inteligente - IA para sugestões baseadas em padrões
-- **Card 02**: Oportunidades na Rede - Comparação com benchmark ABC
-- **Portal Query**: Consultas dinâmicas SQL Server
+- **Algoritmo de Score**: `(frequência * 10) / dias_ultima_compra`
+- **Classificação ABC**: Segmentação automática via NTILE
+- **Cross-selling**: Produtos relacionados por correlação
+- **Benchmark da rede**: Comparação vs média do grupo
 
-### 🔐 **Segurança**
-- Autenticação JWT robusta
+### 🔐 **Segurança & Performance**
+- Autenticação JWT robusta (24h de validade)
 - Logs detalhados para auditoria
-- Validação de entrada em todos endpoints
-
-### ⚡ **Performance**
 - Pool de conexões otimizado
-- Consultas com índices apropriados
-- Executável compilado com otimizações máximas
+- Executável compilado com otimizações máximas (~6.3MB)
 
 ## 🏗️ Arquitetura
 
@@ -67,14 +71,64 @@ cargo build --release
 ## 📡 Endpoints Principais
 
 ### Públicos
-- `GET /health` - Status da API
-- `POST /auth/login` - Autenticação JWT
+- `GET /health` - Status da API e conexões
 
-### Autenticados
-- `GET /data/vendas` - Consultar vendas (PostgreSQL)
-- `POST /portal/query` - Query dinâmica (SQL Server)
-- `GET /analytics/recompra` - Card 01: Sugestões IA
-- `GET /analytics/oportunidades` - Card 02: Benchmark rede
+### Autenticação
+- `POST /auth/login` - Autenticação JWT
+- `GET /auth/validate` - Validar token
+
+### 🔥 **Cards Analytics (NOVO!)**
+- `GET /analytics/recompra-inteligente` - Card 01: Sugestões IA de recompra
+- `GET /analytics/oportunidades-rede` - Card 02: Benchmark vs rede
+
+### Dados & Consultas
+- `GET /data/vendas` - Consultar vendas FC (PostgreSQL)
+- `POST /portal/query` - Query dinâmica Portal (SQL Server)
+- `GET /portal/produtos` - Produtos disponíveis
+- `POST /protheus/query` - Consultas Protheus ERP
+
+## 🎯 Cards Analytics - Exemplos
+
+### Card 01: Recompra Inteligente
+```bash
+GET /analytics/recompra-inteligente?cnpj=17.311.174/0001-78&periodo_dias=180&limite=30
+```
+
+**Response:**
+```json
+{
+  "produtos_recompra": [
+    {
+      "codigo_produto": "PA000037",
+      "score_recompra": 4.2,
+      "nivel_prioridade": "ALTA",
+      "sugestao_inteligente": "Produto em reposição! Incluir no próximo pedido.",
+      "produtos_relacionados": [...]
+    }
+  ]
+}
+```
+
+### Card 02: Oportunidades na Rede
+```bash
+GET /analytics/oportunidades-rede?cnpj=17.311.174/0001-78&periodo_dias=90&limite=20
+```
+
+**Response:**
+```json
+{
+  "oportunidades": [
+    {
+      "codigo_produto": "PA000025",
+      "seu_grupo": "A",
+      "diferenca_percentual": -55.6,
+      "oportunidade_reais": 2400.00,
+      "insight": "GRANDE OPORTUNIDADE: Você está 55% abaixo da média!",
+      "recomendacao": "INCLUIR NO PRÓXIMO PEDIDO"
+    }
+  ]
+}
+```
 
 ## 🔧 Configuração
 
@@ -108,10 +162,14 @@ PORTAL_DATABASE_URL=...
 ## 📊 Status do Projeto
 
 - ✅ **Core API**: Desenvolvida e testada
-- ✅ **Autenticação**: JWT implementado
-- ✅ **Banco duplo**: PostgreSQL + SQL Server
-- ⏳ **Cards Analytics**: Em desenvolvimento
-- ⏳ **Deploy Produção**: Preparado
+- ✅ **Autenticação**: JWT implementado e funcional
+- ✅ **Integração tripla**: PostgreSQL + SQL Server Portal + Protheus
+- ✅ **🔥 Cards Analytics**: Implementados e testados
+  - ✅ Card 01: Algoritmo de recompra inteligente
+  - ✅ Card 02: Análise comparativa vs rede
+- ✅ **Collection Postman**: Completa com testes automatizados
+- ✅ **Documentação**: Guias e exemplos detalhados
+- ✅ **Deploy Ready**: Scripts de produção preparados
 
 ## 🤝 Contribuição
 

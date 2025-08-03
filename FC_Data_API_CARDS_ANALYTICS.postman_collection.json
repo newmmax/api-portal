@@ -1,0 +1,588 @@
+{
+  "info": {
+    "_postman_id": "fc-data-api-cards-collection",
+    "name": "FC Data API - Cards Analytics",
+    "description": "🎯 Collection COMPLETA da FC Data API com Cards Analytics implementados\n\n✅ Funcionalidades:\n- Autenticação JWT\n- Consultas FC Data (PostgreSQL)\n- Portal Queries (SQL Server)\n- 🔥 CARD 01: Recompra Inteligente\n- 🔥 CARD 02: Oportunidades na Rede\n\n📊 Cards Analytics:\n- Algoritmos de IA para sugestões\n- Análise comparativa vs rede\n- Insights personalizados\n- Priorização automática",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "fc-data-api-cards",
+    "version": "3.0.0"
+  },
+  "item": [
+    {
+      "name": "🏥 Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "✅ Verificar status da API\n\n- Status de conexões dos bancos\n- Versão da API\n- Uptime do servidor\n- NÃO requer autenticação"
+      },
+      "response": []
+    },
+    {
+      "name": "🔐 Autenticação",
+      "item": [
+        {
+          "name": "🚪 Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// 🤖 AUTO-CAPTURA DO TOKEN JWT",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.token) {",
+                  "        // Salvar token na collection e environment",
+                  "        pm.collectionVariables.set('token', jsonData.token);",
+                  "        pm.environment.set('token', jsonData.token);",
+                  "        ",
+                  "        console.log('🎉 TOKEN JWT CAPTURADO E SALVO!');",
+                  "        console.log('🔑 Token:', jsonData.token.substring(0, 50) + '...');",
+                  "        console.log('⏰ Expira em:', jsonData.expires_in + ' segundos');",
+                  "        console.log('✅ Pronto para usar endpoints protegidos!');",
+                  "    }",
+                  "}",
+                  "",
+                  "// 🧪 TESTES AUTOMATIZADOS",
+                  "pm.test('✅ Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('🔑 Token received', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.expect(jsonData).to.have.property('expires_in');",
+                  "    pm.expect(jsonData).to.have.property('token_type');",
+                  "});",
+                  "",
+                  "pm.test('🔒 Token is JWT format', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.match(/^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]*$/);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"ArtesanalFC2025!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "🔐 **AUTENTICAÇÃO PRINCIPAL**\n\n**Credenciais padrão:**\n- Username: `admin`\n- Password: `ArtesanalFC2025!`\n\n**Response:**\n```json\n{\n  \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...\",\n  \"expires_in\": 86400,\n  \"token_type\": \"Bearer\"\n}\n```\n\n**Auto-Features:**\n- ✅ Token capturado automaticamente\n- ✅ Salvo em variáveis da collection\n- ✅ Pronto para usar em outros endpoints"
+          },
+          "response": []
+        },        {
+          "name": "🔍 Validar Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('✅ Token is valid', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('📋 Token info received', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.valid).to.be.true;",
+                  "    pm.expect(jsonData).to.have.property('username');",
+                  "    pm.expect(jsonData).to.have.property('expires_at');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/validate",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "validate"]
+            },
+            "description": "🔍 **VALIDAÇÃO DE TOKEN**\n\n- Verifica se token JWT está válido\n- Retorna informações do usuário\n- Mostra data de expiração\n- Útil para debugging"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🎯 CARDS ANALYTICS",
+      "item": [
+        {
+          "name": "🔄 CARD 01: Recompra Inteligente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('✅ Card 01 response OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('📊 Has recompra data', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData).to.have.property('produtos_recompra');",
+                  "    pm.expect(jsonData).to.have.property('algoritmo');",
+                  "});",
+                  "",
+                  "pm.test('🎯 Products have score', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.produtos_recompra && jsonData.produtos_recompra.length > 0) {",
+                  "        var produto = jsonData.produtos_recompra[0];",
+                  "        pm.expect(produto).to.have.property('score_recompra');",
+                  "        pm.expect(produto).to.have.property('nivel_prioridade');",
+                  "        pm.expect(produto).to.have.property('sugestao_inteligente');",
+                  "    }",
+                  "});",
+                  "",
+                  "// 📊 LOG DOS RESULTADOS",
+                  "if (pm.response.code === 200) {",
+                  "    var data = pm.response.json();",
+                  "    console.log('🎯 CARD 01: Recompra Inteligente');",
+                  "    console.log('📈 Total produtos:', data.total_produtos);",
+                  "    console.log('🔍 Período:', data.periodo_dias + ' dias');",
+                  "    console.log('🏢 CNPJ:', data.cnpj);",
+                  "    ",
+                  "    if (data.produtos_recompra && data.produtos_recompra.length > 0) {",
+                  "        console.log('🔥 TOP 3 PRODUTOS:');",
+                  "        data.produtos_recompra.slice(0, 3).forEach((p, i) => {",
+                  "            console.log(`${i+1}. ${p.codigo_produto} - Score: ${p.score_recompra} (${p.nivel_prioridade})`);",
+                  "        });",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/recompra-inteligente?cnpj={{cnpj_teste}}&periodo_dias=180&limite=30",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "recompra-inteligente"],
+              "query": [
+                {
+                  "key": "cnpj",
+                  "value": "{{cnpj_teste}}",
+                  "description": "CNPJ do franqueado (OBRIGATÓRIO)"
+                },
+                {
+                  "key": "periodo_dias",
+                  "value": "180",
+                  "description": "Período de análise em dias (padrão: 90)"
+                },
+                {
+                  "key": "limite",
+                  "value": "30",
+                  "description": "Número máximo de produtos (padrão: 50)"
+                }
+              ]
+            },
+            "description": "🔄 **CARD 01: RECOMPRA INTELIGENTE**\n\n**Algoritmo de IA para sugestões de recompra baseado em:**\n- 📊 Frequência de compras\n- ⏰ Tempo desde última compra  \n- 🎯 Score inteligente: `(frequência * 10) / dias_ultima_compra`\n\n**Features:**\n- ✅ Classificação ALTA/MÉDIA/BAIXA\n- ✅ Produtos relacionados (cross-selling)\n- ✅ Insights personalizados\n- ✅ Mensagens UX prontas\n\n**Parâmetros:**\n- `cnpj`: CNPJ do franqueado (obrigatório)\n- `periodo_dias`: Período análise (opcional, padrão: 90)\n- `limite`: Max produtos (opcional, padrão: 50)\n\n**Response inclui:**\n```json\n{\n  \"produtos_recompra\": [\n    {\n      \"codigo_produto\": \"PA000037\",\n      \"score_recompra\": 4.2,\n      \"nivel_prioridade\": \"ALTA\",\n      \"sugestao_inteligente\": \"Produto em reposição!\",\n      \"produtos_relacionados\": [...]\n    }\n  ]\n}\n```"
+          },
+          "response": []
+        },        {
+          "name": "🏆 CARD 02: Oportunidades na Rede",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('✅ Card 02 response OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('📊 Has oportunidades data', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData).to.have.property('oportunidades');",
+                  "    pm.expect(jsonData).to.have.property('algoritmo');",
+                  "});",
+                  "",
+                  "pm.test('🎯 Opportunities have metrics', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.oportunidades && jsonData.oportunidades.length > 0) {",
+                  "        var oport = jsonData.oportunidades[0];",
+                  "        pm.expect(oport).to.have.property('seu_grupo');",
+                  "        pm.expect(oport).to.have.property('diferenca_percentual');",
+                  "        pm.expect(oport).to.have.property('oportunidade_reais');",
+                  "        pm.expect(oport).to.have.property('nivel_prioridade');",
+                  "        pm.expect(oport).to.have.property('recomendacao');",
+                  "    }",
+                  "});",
+                  "",
+                  "// 📊 LOG DOS RESULTADOS",
+                  "if (pm.response.code === 200) {",
+                  "    var data = pm.response.json();",
+                  "    console.log('🏆 CARD 02: Oportunidades na Rede');",
+                  "    console.log('📈 Total oportunidades:', data.total_oportunidades);",
+                  "    console.log('🔍 Período:', data.periodo_dias + ' dias');",
+                  "    console.log('🏢 CNPJ:', data.cnpj);",
+                  "    ",
+                  "    if (data.oportunidades && data.oportunidades.length > 0) {",
+                  "        console.log('💰 TOP 3 OPORTUNIDADES:');",
+                  "        data.oportunidades.slice(0, 3).forEach((o, i) => {",
+                  "            console.log(`${i+1}. ${o.codigo_produto} - R$ ${o.oportunidade_reais} (${o.nivel_prioridade})`);",
+                  "        });",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/oportunidades-rede?cnpj={{cnpj_teste}}&periodo_dias=90&limite=20",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "oportunidades-rede"],
+              "query": [
+                {
+                  "key": "cnpj",
+                  "value": "{{cnpj_teste}}",
+                  "description": "CNPJ do franqueado (OBRIGATÓRIO)"
+                },
+                {
+                  "key": "periodo_dias",
+                  "value": "90",
+                  "description": "Período de comparação em dias (padrão: 90)"
+                },
+                {
+                  "key": "limite",
+                  "value": "20",
+                  "description": "Número máximo de oportunidades (padrão: 50)"
+                }
+              ]
+            },
+            "description": "🏆 **CARD 02: OPORTUNIDADES NA REDE**\n\n**Algoritmo de comparação vs benchmark da rede:**\n- 🏅 Classificação ABC automática (NTILE)\n- 📊 Comparação com média do grupo ABC\n- 💰 Cálculo de potencial financeiro\n- 🎯 Score de priorização multi-fator\n\n**Features:**\n- ✅ Grupos A/B/C automáticos\n- ✅ Benchmark vs média da rede\n- ✅ Insights personalizados\n- ✅ Recomendações de ação\n- ✅ Impacto financeiro estimado\n\n**Algoritmo de Score:**\n- 50% peso: diferença percentual vs média\n- 30% peso: impacto financeiro estimado\n- 20% peso: popularidade na rede\n\n**Response inclui:**\n```json\n{\n  \"oportunidades\": [\n    {\n      \"codigo_produto\": \"PA000025\",\n      \"seu_grupo\": \"A\",\n      \"diferenca_percentual\": -55.6,\n      \"oportunidade_reais\": 2400.00,\n      \"insight\": \"GRANDE OPORTUNIDADE: 55% abaixo!\",\n      \"recomendacao\": \"INCLUIR NO PRÓXIMO PEDIDO\"\n    }\n  ]\n}\n```"
+          },
+          "response": []
+        }
+      ]
+    },    {
+      "name": "🔍 Portal Queries",
+      "item": [
+        {
+          "name": "🎯 Query Portal Dinâmica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT TOP 10 id, nome, cnpj, cidade FROM clientes WHERE deleted_at IS NULL ORDER BY created_at DESC\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/portal/query",
+              "host": ["{{base_url}}"],
+              "path": ["portal", "query"]
+            },
+            "description": "🎯 **QUERY DINÂMICA DO PORTAL**\n\n- Executa SQL personalizado no Portal\n- Suporte completo a tipos SQL Server\n- Conversão automática para JSON\n\n**Exemplos seguros:**\n```sql\nSELECT TOP 10 nome, cnpj FROM clientes\nSELECT codigo, descricao FROM produtos WHERE status = 1\nSELECT COUNT(*) as total FROM pedidos WHERE created_at >= '2025-01-01'\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "📦 Produtos Portal",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/portal/produtos?grupo_venda=PREMIUM",
+              "host": ["{{base_url}}"],
+              "path": ["portal", "produtos"],
+              "query": [
+                {
+                  "key": "grupo_venda",
+                  "value": "PREMIUM",
+                  "description": "Filtrar por grupo de venda"
+                }
+              ]
+            },
+            "description": "📦 **PRODUTOS DO PORTAL**\n\n- Lista produtos disponíveis\n- Filtros por grupo de venda\n- Informações de estoque e preço"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Dados FC (PostgreSQL)",
+      "item": [
+        {
+          "name": "📈 Vendas FC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/data/vendas?data_inicio=2024-01-01&data_fim=2025-12-31&limite=50",
+              "host": ["{{base_url}}"],
+              "path": ["data", "vendas"],
+              "query": [
+                {
+                  "key": "data_inicio",
+                  "value": "2024-01-01",
+                  "description": "Data inicial (YYYY-MM-DD)"
+                },
+                {
+                  "key": "data_fim",
+                  "value": "2025-12-31",
+                  "description": "Data final (YYYY-MM-DD)"
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "description": "Máximo de registros"
+                }
+              ]
+            },
+            "description": "📈 **DADOS DE VENDAS FC**\n\n- Query única otimizada\n- Dados históricos PostgreSQL\n- Métricas completas de vendas"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📋 Exemplos Práticos",
+      "item": [
+        {
+          "name": "🎯 Teste Completo Cards",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Definir CNPJ de teste",
+                  "pm.collectionVariables.set('cnpj_teste', '17.311.174/0001-78');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('🎯 EXECUTANDO TESTE COMPLETO DOS CARDS');",
+                  "console.log('================================');",
+                  "",
+                  "// Executar Card 01",
+                  "pm.sendRequest({",
+                  "    url: pm.collectionVariables.get('base_url') + '/analytics/recompra-inteligente?cnpj=' + pm.collectionVariables.get('cnpj_teste') + '&periodo_dias=90&limite=10',",
+                  "    method: 'GET',",
+                  "    header: {",
+                  "        'Authorization': 'Bearer ' + pm.collectionVariables.get('token')",
+                  "    }",
+                  "}, function (err, response) {",
+                  "    if (!err && response.code === 200) {",
+                  "        var data = response.json();",
+                  "        console.log('✅ CARD 01 - Recompra Inteligente: OK');",
+                  "        console.log('📊 Produtos encontrados:', data.total_produtos);",
+                  "    } else {",
+                  "        console.log('❌ CARD 01 - Erro:', err || response.status);",
+                  "    }",
+                  "});",
+                  "",
+                  "// Executar Card 02",
+                  "setTimeout(() => {",
+                  "    pm.sendRequest({",
+                  "        url: pm.collectionVariables.get('base_url') + '/analytics/oportunidades-rede?cnpj=' + pm.collectionVariables.get('cnpj_teste') + '&periodo_dias=90&limite=10',",
+                  "        method: 'GET',",
+                  "        header: {",
+                  "            'Authorization': 'Bearer ' + pm.collectionVariables.get('token')",
+                  "        }",
+                  "    }, function (err, response) {",
+                  "        if (!err && response.code === 200) {",
+                  "            var data = response.json();",
+                  "            console.log('✅ CARD 02 - Oportunidades na Rede: OK');",
+                  "            console.log('💰 Oportunidades encontradas:', data.total_oportunidades);",
+                  "        } else {",
+                  "            console.log('❌ CARD 02 - Erro:', err || response.status);",
+                  "        }",
+                  "        console.log('================================');",
+                  "        console.log('🎉 TESTE COMPLETO FINALIZADO!');",
+                  "    });",
+                  "}, 1000);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "🎯 **TESTE AUTOMÁTICO COMPLETO**\n\n- Executa todos os Cards automaticamente\n- Mostra resultados no console\n- Ideal para validação rápida"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// 🚀 PRE-REQUEST GLOBAL SCRIPT",
+          "console.log('🔄 Executando request:', pm.info.requestName);",
+          "",
+          "// Definir data atual se necessário",
+          "const now = new Date();",
+          "const year = now.getFullYear();",
+          "const month = String(now.getMonth() + 1).padStart(2, '0');",
+          "const day = String(now.getDate()).padStart(2, '0');",
+          "pm.collectionVariables.set('current_date', `${year}-${month}-${day}`);",
+          "",
+          "// Verificar token antes de requests protegidos",
+          "const token = pm.collectionVariables.get('token') || pm.environment.get('token');",
+          "if (!pm.request.url.path.includes('login') && ",
+          "    !pm.request.url.path.includes('health')) {",
+          "    if (!token) {",
+          "        console.warn('⚠️ Token não encontrado! Execute o LOGIN primeiro.');",
+          "    } else {",
+          "        console.log('✅ Token JWT encontrado e será usado.');",
+          "    }",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// 🧪 POST-TEST GLOBAL SCRIPT",
+          "",
+          "// Log de resposta",
+          "if (pm.response.code !== 200) {",
+          "    console.error('❌ Erro:', pm.response.code, pm.response.status);",
+          "    console.log('📄 Response:', pm.response.text());",
+          "} else {",
+          "    console.log('✅ Sucesso:', pm.info.requestName);",
+          "}",
+          "",
+          "// Verificar erros de autenticação",
+          "if (pm.response.code === 401) {",
+          "    console.error('🔐 ERRO DE AUTENTICAÇÃO!');",
+          "    console.log('💡 Dica: Execute o endpoint de LOGIN novamente.');",
+          "}"
+        ]
+      }
+    }
+  ],  "variable": [
+    {
+      "key": "protocol",
+      "value": "http",
+      "type": "string",
+      "description": "Protocolo da API (http/https)"
+    },
+    {
+      "key": "host",
+      "value": "localhost",
+      "type": "string",
+      "description": "Host da API"
+    },
+    {
+      "key": "port",
+      "value": "8089",
+      "type": "string",
+      "description": "Porta da API"
+    },
+    {
+      "key": "api_path",
+      "value": "/services/api1",
+      "type": "string",
+      "description": "Caminho base da API"
+    },
+    {
+      "key": "base_url",
+      "value": "{{protocol}}://{{host}}:{{port}}{{api_path}}",
+      "type": "string",
+      "description": "URL completa da API"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "Token JWT (preenchido automaticamente pelo login)"
+    },
+    {
+      "key": "cnpj_teste",
+      "value": "17.311.174/0001-78",
+      "type": "string",
+      "description": "CNPJ padrão para testes dos Cards"
+    },
+    {
+      "key": "current_date",
+      "value": "",
+      "type": "string",
+      "description": "Data atual (gerada automaticamente)"
+    }
+  ]
+}
