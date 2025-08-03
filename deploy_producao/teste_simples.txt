@@ -1,0 +1,7 @@
+@echo off
+echo TESTE 1
+pause
+echo TESTE 2
+pause
+echo TESTE 3
+pause

@@ -1,0 +1,87 @@
+=========================================================
+  FC DATA API - INSTRUÇÕES DE DEPLOY NO SERVIDOR
+=========================================================
+
+Esta pasta contém TODOS os arquivos necessários para o deploy.
+
+CONTEÚDO DA PASTA:
+==================
+✓ fc-data-api.exe     - Executável da API (compilado)
+✓ .env               - Configuração atual (desenvolvimento)
+✓ .env.producao      - Exemplo para produção (AJUSTE!)
+✓ deploy-seguro/     - Scripts de instalação automatizada
+
+⚠️ IMPORTANTE - ANTES DE COMEÇAR:
+=================================
+1. REVISE E AJUSTE O ARQUIVO .env
+   - Renomeie .env para .env.backup
+   - Renomeie .env.producao para .env
+   - EDITE o .env e mude:
+     * JWT_SECRET (use uma chave aleatória forte)
+     * ADMIN_PASSWORD (senha forte)
+     * Confirme DATABASE_URL está correto
+
+2. REQUISITOS NO SERVIDOR:
+   - Windows Server 2012+ ou Windows 10/11
+   - Executar como ADMINISTRADOR
+   - NSSM instalado (baixe de https://nssm.cc se não tiver)
+   - Porta 8089 livre
+   - Acesso ao PostgreSQL em 10.216.1.16:5432
+
+INSTALAÇÃO PASSO A PASSO:
+========================
+1. Copie esta pasta para C:\ do servidor
+   (ficará em C:\temp_deploy)
+
+2. Abra o Prompt de Comando como ADMINISTRADOR
+
+3. Navegue até a pasta:
+   cd C:\temp_deploy\deploy-seguro
+
+4. Execute os scripts NA ORDEM:
+   
+   a) 01_VALIDACAO_MENU.bat
+      - Valida pré-requisitos
+      - Testa conexões
+      - Não prossiga se houver erros!
+   
+   b) 02_BACKUP_ATUAL.bat
+      - Faz backup de configurações
+      - Cria script de rollback
+   
+   c) 03_DEPLOY_PASSO_A_PASSO.bat
+      - Instala o serviço Windows
+      - Configura recuperação automática
+      - Opção de configurar Apache
+   
+   d) 04_VALIDACAO_FINAL.bat
+      - Testa se tudo está funcionando
+      - Gera relatório
+
+5. Se tudo estiver OK, configure o Apache:
+   - Adicione as linhas de proxy no httpd-vhosts.conf
+   - Reinicie o Apache
+
+TESTE RÁPIDO:
+============
+Após instalação, teste:
+- http://localhost:8089/services/api1/health
+- https://conexao.artesanalfarmacia.com.br/services/api1/health
+
+MONITORAMENTO:
+=============
+Use MONITOR_TEMPO_REAL.bat para acompanhar em tempo real
+
+SE ALGO DER ERRADO:
+==================
+1. Execute o script ROLLBACK.bat do backup criado
+2. Ou use EMERGENCIA_PARAR_TUDO.bat
+3. Verifique logs em C:\fcdata-api\logs\
+
+SUPORTE:
+========
+- Logs do serviço: C:\fcdata-api\logs\service.log
+- Logs de erro: C:\fcdata-api\logs\error.log
+- Status: sc query FCDataAPI
+
+BOA SORTE COM O DEPLOY! 🚀

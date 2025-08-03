@@ -1,0 +1,64 @@
+[package]
+name = "fc-data-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Framework web async
+actix-web = "4"
+actix-cors = "0.7"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# PostgreSQL
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4", "with-uuid-1"] }
+deadpool-postgres = "0.13"
+
+# Serialização
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# JWT
+jsonwebtoken = "9"
+
+# Data e hora
+chrono = { version = "0.4", features = ["serde"] }
+
+# Variáveis de ambiente
+dotenv = "0.15"
+
+# Logging
+env_logger = "0.11"
+log = "0.4"
+
+# Erros
+thiserror = "1.0"
+
+# UUID para IDs únicos
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Base64 para codificação de dados binários
+base64 = "0.22"
+
+# Hashing de senhas
+bcrypt = "0.15"
+
+# Configuração
+config = "0.14"
+
+# Futures utilities
+futures-util = "0.3"
+
+# SQL Server
+tiberius = { version = "0.12", features = ["chrono", "rust_decimal"] }
+bb8 = "0.8"
+bb8-tiberius = "0.15"
+rust_decimal = { version = "1.37", features = ["serde"] }
+
+[profile.release]
+# Otimizações para executável menor e mais rápido
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

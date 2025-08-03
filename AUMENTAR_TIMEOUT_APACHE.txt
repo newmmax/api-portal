@@ -1,0 +1,32 @@
+# SOLUÇÃO SIMPLES - Erro 502 Proxy Timeout
+
+## 1. Localizar o arquivo de configuração do Apache:
+   
+   Geralmente em:
+   - C:\xampp\apache\conf\extra\httpd-vhosts.conf
+   - Ou onde está configurado o VirtualHost da conexao.artesanalfarmacia.com.br
+
+## 2. Adicionar estas 2 linhas no VirtualHost:
+
+   <VirtualHost *:443>
+       ServerName conexao.artesanalfarmacia.com.br
+       
+       # ADICIONAR ESTAS LINHAS:
+       ProxyTimeout 300
+       KeepAlive On
+       
+       # Resto da configuração existente...
+       ProxyPass /services/api1 http://localhost:8089/services/api1
+       ProxyPassReverse /services/api1 http://localhost:8089/services/api1
+   </VirtualHost>
+
+## 3. Reiniciar o Apache:
+   
+   - No XAMPP Control Panel: Stop → Start no Apache
+   - Ou via comando: httpd -k restart
+
+## Pronto! 
+
+O timeout agora é de 5 minutos (300 segundos) em vez do padrão de 60 segundos.
+
+Isso resolve o problema de queries que demoram mais para processar.

@@ -1,0 +1,145 @@
+{
+  "projeto": {
+    "nome": "FC Data API",
+    "descricao": "API REST em Rust para consulta de dados do sistema FC (PostgreSQL)",
+    "versao": "0.1.0",
+    "status": "Pronto para deploy em produção",
+    "localizacao": "C:\\XAMPP\\htdocs\\portaldepedidos\\fc-data-api"
+  },
+  
+  "tecnologias": {
+    "linguagem": "Rust",
+    "framework": "Actix-Web 4",
+    "banco_dados": "PostgreSQL",
+    "autenticacao": "JWT",
+    "runtime": "Tokio",
+    "deploy": "Windows Service (NSSM)"
+  },
+  
+  "banco_dados": {
+    "host": "10.216.1.16",
+    "porta": 5432,
+    "database": "fc_data",
+    "usuario": "rodrigo",
+    "senha": "R0drigoPgSQL",
+    "url_completa": "postgres://rodrigo:R0drigoPgSQL@10.216.1.16:5432/fc_data"
+  },
+  
+  "api": {
+    "desenvolvimento": {
+      "url_base": "http://localhost:8089/services/api1",
+      "porta": 8089
+    },
+    "producao": {
+      "url_base": "https://conexao.artesanalfarmacia.com.br/services/api1",
+      "porta": 8089
+    }
+  },
+  
+  "autenticacao": {
+    "tipo": "JWT",
+    "username": "admin",
+    "password": "ArtesanalFC2025!",
+    "jwt_secret": "fc_data_api_jwt_secret_artesanal_2025_secure_key",
+    "expiracao_horas": 24
+  },
+  
+  "endpoints": {
+    "publicos": [
+      {
+        "metodo": "GET",
+        "caminho": "/services/api1/health",
+        "descricao": "Health check e status do banco"
+      },
+      {
+        "metodo": "POST",
+        "caminho": "/services/api1/auth/login",
+        "descricao": "Autenticação e obtenção de token JWT"
+      }
+    ],
+    "autenticados": [
+      {
+        "metodo": "GET",
+        "caminho": "/services/api1/auth/validate",
+        "descricao": "Validar token JWT"
+      },
+      {
+        "metodo": "GET",
+        "caminho": "/services/api1/data/vendas",
+        "descricao": "Consultar vendas com filtros",
+        "parametros": ["data_inicio", "data_fim", "empresa", "filial", "vendedor", "produto", "limite"]
+      },
+      {
+        "metodo": "GET",
+        "caminho": "/services/api1/data/vendas/detalhes",
+        "descricao": "Vendas detalhadas (mesma query)"
+      },
+      {
+        "metodo": "POST",
+        "caminho": "/services/api1/data/query",
+        "descricao": "Executar query customizada"
+      }
+    ]
+  },
+  
+  "tabelas_banco": {
+    "FC14000": "Cabeçalho de vendas",
+    "FC14100": "Itens de venda",
+    "fc03000": "Produtos",
+    "fc07000": "Clientes",
+    "fc08000": "Funcionários/Vendedores",
+    "companies": "Filiais",
+    "company_config": "Configuração das empresas"
+  },
+  
+  "arquivos_deploy": {
+    "executavel": "fc-data-api.exe",
+    "tamanho_mb": 6.3,
+    "pasta_deploy": "temp_deploy",
+    "scripts": [
+      "01_VALIDACAO_MENU.bat",
+      "02_BACKUP_ATUAL.bat",
+      "03_DEPLOY_PASSO_A_PASSO.bat",
+      "04_VALIDACAO_FINAL.bat"
+    ]
+  },
+  
+  "comandos_uteis": {
+    "compilar": "cargo build --release",
+    "executar_dev": "cargo run",
+    "status_servico": "sc query FCDataAPI",
+    "ver_logs": "type C:\\fcdata-api\\logs\\service.log",
+    "testar_health": "curl http://localhost:8089/services/api1/health",
+    "reiniciar_servico": "nssm restart FCDataAPI"
+  },
+  
+  "configuracao_apache": {
+    "proxy_pass": "ProxyPass /services/api1 http://localhost:8089/services/api1",
+    "proxy_pass_reverse": "ProxyPassReverse /services/api1 http://localhost:8089/services/api1"
+  },
+  
+  "problemas_comuns": {
+    "porta_em_uso": {
+      "verificar": "netstat -ano | findstr :8089",
+      "solucao": "Mudar SERVER_PORT no arquivo .env"
+    },
+    "arquivo_em_uso": {
+      "solucao": "Fechar fc-data-api.exe no Task Manager antes de compilar"
+    },
+    "token_expirado": {
+      "solucao": "Fazer novo login para obter token atualizado"
+    },
+    "servico_nao_inicia": {
+      "verificar": ["C:\\fcdata-api\\logs\\", "Event Viewer do Windows"],
+      "solucao": "Testar executável manualmente primeiro"
+    }
+  },
+  
+  "data_atualizacao": "2025-07-09",
+  "observacoes": [
+    "Sempre executar scripts como Administrador",
+    "Fazer backup antes de mudanças em produção",
+    "Mudar senhas padrão antes do deploy",
+    "Monitorar logs nas primeiras 24h após deploy"
+  ]
+}

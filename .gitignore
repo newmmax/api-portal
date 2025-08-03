@@ -1,0 +1,65 @@
+# 🦀 RUST GITIGNORE - FC Data API
+
+# Build artifacts
+/target
+Cargo.lock
+
+# Environment files (SEGURANÇA)
+.env
+.env.local
+.env.production
+.env.development
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Backup files
+backup_*
+*.backup
+*.bak
+
+# Deploy artifacts (mantemos apenas scripts)
+temp_deploy/fc-data-api.exe
+release_final/*.exe
+
+# Test artifacts
+test_results/
+coverage/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Project specific
+debug_*
+test_*_debug.*
+*.pid
+
+# MCP temporary files
+.mcp/temp/

@@ -1,0 +1,597 @@
+{
+  "info": {
+    "_postman_id": "fc-data-api-collection",
+    "name": "FC Data API",
+    "description": "Coleção completa para testar a FC Data API - Sistema de consulta de dados do FC PostgreSQL (Query Única)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "fc-data-api",
+    "version": "2.0.0"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "Verificar status da API e conexão com banco de dados PostgreSQL. Não requer autenticação."
+      },
+      "response": []
+    },
+    {
+      "name": "Autenticação",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Capturar token automaticamente da resposta de login",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.token) {",
+                  "        pm.collectionVariables.set(\"token\", jsonData.token);",
+                  "        pm.environment.set(\"token\", jsonData.token);",
+                  "        console.log(\"Token JWT salvo:\", jsonData.token);",
+                  "        console.log(\"Expira em:\", jsonData.expires_in + \" segundos\");",
+                  "    }",
+                  "}",
+                  "",
+                  "// Testes automatizados",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.expect(jsonData).to.have.property('expires_in');",
+                  "    pm.expect(jsonData).to.have.property('token_type');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"ArtesanalFC2025!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Autenticação na API para obter o token JWT. Token válido por 24 horas."
+          },
+          "response": []
+        },
+        {
+          "name": "Validar Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Token is valid\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.valid).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/validate",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "validate"]
+            },
+            "description": "Validar se o token JWT está válido. Retorna informações do token incluindo username e data de expiração."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Consultas de Vendas",
+      "item": [
+        {
+          "name": "Vendas (Query Completa)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success and data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "});",
+                  "",
+                  "pm.test(\"Data contains expected fields\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.length > 0) {",
+                  "        var firstItem = jsonData.data[0];",
+                  "        pm.expect(firstItem).to.have.property('companygroupname');",
+                  "        pm.expect(firstItem).to.have.property('cnpj');",
+                  "        pm.expect(firstItem).to.have.property('nrcpm');",
+                  "        pm.expect(firstItem).to.have.property('cdpro');",
+                  "        pm.expect(firstItem).to.have.property('descrprd');",
+                  "        pm.expect(firstItem).to.have.property('vrrcb');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/data/vendas?data_inicio=2024-01-01&data_fim=2025-12-31&limite=10",
+              "host": ["{{base_url}}"],
+              "path": ["data", "vendas"],
+              "query": [
+                {
+                  "key": "data_inicio",
+                  "value": "2024-01-01",
+                  "description": "Data inicial (YYYY-MM-DD)"
+                },
+                {
+                  "key": "data_fim",
+                  "value": "2025-12-31",
+                  "description": "Data final (YYYY-MM-DD)"
+                },
+                {
+                  "key": "limite",
+                  "value": "10",
+                  "description": "Número máximo de registros"
+                },
+                {
+                  "key": "empresa",
+                  "value": "",
+                  "description": "Filtrar por empresa (companygroupname)",
+                  "disabled": true
+                },
+                {
+                  "key": "filial",
+                  "value": "",
+                  "description": "Código da filial",
+                  "disabled": true
+                },
+                {
+                  "key": "vendedor",
+                  "value": "",
+                  "description": "Código do vendedor",
+                  "disabled": true
+                },
+                {
+                  "key": "produto",
+                  "value": "",
+                  "description": "Nome do produto (busca parcial ILIKE)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Consulta dados de vendas usando a QUERY ÚNICA fornecida. Retorna TODOS os campos: companygroupname, cnpj, cdfil, descrfil, nrcpm, dtpagefe, dteminfce, cdcli, nomecli, cdfunre, nomefun, itemid, cdpro, descrprd, setor, quant, pruni, vrtot, vrdsc, vrrcb (calculado), prcusto, prcompra."
+          },
+          "response": []
+        },
+        {
+          "name": "Vendas Detalhadas (Mesma Query)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns same structure as /vendas\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/data/vendas/detalhes?limite=10",
+              "host": ["{{base_url}}"],
+              "path": ["data", "vendas", "detalhes"],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "10",
+                  "description": "Número máximo de registros"
+                },
+                {
+                  "key": "data_inicio",
+                  "value": "2024-01-01",
+                  "description": "Data inicial (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "data_fim",
+                  "value": "2025-12-31",
+                  "description": "Data final (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "empresa",
+                  "value": "",
+                  "description": "Filtrar por empresa",
+                  "disabled": true
+                },
+                {
+                  "key": "filial",
+                  "value": "",
+                  "description": "Código da filial",
+                  "disabled": true
+                },
+                {
+                  "key": "vendedor",
+                  "value": "",
+                  "description": "Código do vendedor",
+                  "disabled": true
+                },
+                {
+                  "key": "produto",
+                  "value": "",
+                  "description": "Nome do produto (busca parcial)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "⚠️ ATENÇÃO: Este endpoint usa EXATAMENTE a mesma query que /vendas. Foi mantido apenas para compatibilidade. Retorna os mesmos dados com a mesma estrutura."
+          },
+          "response": []
+        },
+        {
+          "name": "Debug Query (Sem Auth)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains query and filters\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('query');",
+                  "    pm.expect(jsonData).to.have.property('filtros_recebidos');",
+                  "});",
+                  "",
+                  "pm.test(\"Query contains expected SQL structure\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.query).to.include('SELECT');",
+                  "    pm.expect(jsonData.query).to.include('FROM FC14000');",
+                  "    pm.expect(jsonData.query).to.include('INNER JOIN');",
+                  "    pm.expect(jsonData.query).to.include('vrrcb');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/debug/query?data_inicio=2024-01-01&data_fim=2025-12-31&limite=5",
+              "host": ["{{base_url}}"],
+              "path": ["debug", "query"],
+              "query": [
+                {
+                  "key": "data_inicio",
+                  "value": "2024-01-01",
+                  "description": "Data inicial para teste"
+                },
+                {
+                  "key": "data_fim",
+                  "value": "2025-12-31",
+                  "description": "Data final para teste"
+                },
+                {
+                  "key": "limite",
+                  "value": "5",
+                  "description": "Limite de registros"
+                },
+                {
+                  "key": "empresa",
+                  "value": "GRUPO01",
+                  "description": "Nome da empresa",
+                  "disabled": true
+                },
+                {
+                  "key": "filial",
+                  "value": "1",
+                  "description": "Código da filial",
+                  "disabled": true
+                },
+                {
+                  "key": "vendedor",
+                  "value": "10",
+                  "description": "Código do vendedor",
+                  "disabled": true
+                },
+                {
+                  "key": "produto",
+                  "value": "DIPIRONA",
+                  "description": "Busca parcial no nome do produto",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "🔍 ENDPOINT DE DEBUG - NÃO requer autenticação!\n\nMostra a query SQL EXATA que será executada com os filtros aplicados. Use este endpoint para:\n- Verificar se a query está correta\n- Ver como os filtros são aplicados\n- Comparar com a query que funciona no DBeaver\n- Troubleshooting de problemas"
+          },
+          "response": []
+        },
+        {
+          "name": "Query Customizada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has query results\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData).to.have.property('count');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT COUNT(*) as total_vendas, SUM(vrrcb) as valor_total FROM fc14100 WHERE itemid IS NOT NULL LIMIT 10\",\n  \"params\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/data/query",
+              "host": ["{{base_url}}"],
+              "path": ["data", "query"]
+            },
+            "description": "Executar query SQL customizada no banco PostgreSQL. Apenas queries SELECT são permitidas por segurança."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Exemplos de Uso",
+      "item": [
+        {
+          "name": "Vendas do Mês Atual",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/data/vendas?data_inicio={{current_month_start}}&data_fim={{current_date}}&limite=100",
+              "host": ["{{base_url}}"],
+              "path": ["data", "vendas"],
+              "query": [
+                {
+                  "key": "data_inicio",
+                  "value": "{{current_month_start}}",
+                  "description": "Primeiro dia do mês atual"
+                },
+                {
+                  "key": "data_fim",
+                  "value": "{{current_date}}",
+                  "description": "Data atual"
+                },
+                {
+                  "key": "limite",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Exemplo prático: vendas do mês atual"
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por Produto",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/data/vendas?produto=DIPIRONA&limite=50",
+              "host": ["{{base_url}}"],
+              "path": ["data", "vendas"],
+              "query": [
+                {
+                  "key": "produto",
+                  "value": "DIPIRONA",
+                  "description": "Busca produtos que contenham 'DIPIRONA' no nome"
+                },
+                {
+                  "key": "limite",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Exemplo: buscar vendas de produtos específicos usando ILIKE"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Definir datas dinâmicas",
+          "const now = new Date();",
+          "const year = now.getFullYear();",
+          "const month = String(now.getMonth() + 1).padStart(2, '0');",
+          "const day = String(now.getDate()).padStart(2, '0');",
+          "",
+          "pm.collectionVariables.set('current_date', `${year}-${month}-${day}`);",
+          "pm.collectionVariables.set('current_month_start', `${year}-${month}-01`);",
+          "",
+          "// Verificar se tem token antes de requisições autenticadas",
+          "if (!pm.request.url.path.includes('login') && ",
+          "    !pm.request.url.path.includes('health') &&",
+          "    !pm.request.url.path.includes('debug')) {",
+          "    const token = pm.collectionVariables.get('token') || pm.environment.get('token');",
+          "    if (!token) {",
+          "        console.warn('⚠️ Token não encontrado! Faça login primeiro.');",
+          "    }",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Verificar erros de autenticação",
+          "if (pm.response.code === 401) {",
+          "    console.error('❌ Erro de autenticação! Token inválido ou expirado.');",
+          "    console.log('Execute o endpoint de Login novamente.');",
+          "}",
+          "",
+          "// Log de resposta para debug",
+          "if (pm.response.code !== 200) {",
+          "    console.log('Response Status:', pm.response.code);",
+          "    console.log('Response Body:', pm.response.text());",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "protocol",
+      "value": "http",
+      "type": "string"
+    },
+    {
+      "key": "host",
+      "value": "localhost",
+      "type": "string"
+    },
+    {
+      "key": "port",
+      "value": "8080",
+      "type": "string"
+    },
+    {
+      "key": "api_path",
+      "value": "/services/api1",
+      "type": "string"
+    },
+    {
+      "key": "base_url",
+      "value": "{{protocol}}://{{host}}:{{port}}{{api_path}}",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "current_date",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "current_month_start",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
