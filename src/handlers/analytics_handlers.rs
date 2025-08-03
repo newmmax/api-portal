@@ -37,6 +37,8 @@ pub struct ProdutoRecompra {
     pub valor_medio: f64,
     pub dias_ultima_compra: i32,
     pub score_recompra: f64,
+    pub nivel_prioridade: String,      // ALTA, MÉDIA, BAIXA
+    pub sugestao_inteligente: String,  // Mensagem personalizada
     pub produtos_relacionados: Vec<ProdutoRelacionado>,
 }
 
@@ -53,12 +55,17 @@ pub struct OportunidadeRede {
     pub codigo_produto: String,
     pub descricao_produto: String,
     pub categoria: Option<String>,
-    pub media_franqueado: f64,
-    pub media_rede: f64,
-    pub diferenca_percentual: f64,
-    pub potencial_adicional: f64,
-    pub grupo_abc: String,
-    pub prioridade: String,
+    pub seu_grupo: String,                    // Grupo ABC do franqueado
+    pub sua_quantidade: f64,                  // Quantidade atual do franqueado
+    pub media_do_grupo: f64,                  // Média do grupo ABC
+    pub diferenca_percentual: f64,            // % diferença vs média
+    pub unidades_adicionais: f64,             // Potencial em unidades
+    pub oportunidade_reais: f64,              // Impacto financeiro estimado
+    pub outros_franqueados_compram: i32,      // Quantos outros compram
+    pub nivel_prioridade: String,             // ALTA, MÉDIA, BAIXA
+    pub score_prioridade: f64,                // Score de priorização
+    pub insight: String,                      // Insight personalizado
+    pub recomendacao: String,                 // Recomendação de ação
 }
 
 /// Card 01: Análise de Recompra Inteligente
@@ -86,31 +93,83 @@ pub async fn recompra_inteligente(
         }
     };
     
-    // Query corrigida para SQL Server Portal (SELL-IN)
+    // 🎯 CARD 01: RECOMPRA INTELIGENTE - ALGORITMO DE IA PARA SUGESTÕES
+    // Query otimizada baseada no documento oficial do Card 01
     let sql_recompra = r#"
-        SELECT 
-            i.codigo_produto,
-            i.descricao_produto,
-            cat.nome as categoria,
-            COUNT(DISTINCT p.id) as frequencia_compra,
-            AVG(CAST(i.quantidade AS FLOAT)) as quantidade_media,
-            AVG(i.preco_unitario * i.quantidade) as valor_medio,
-            DATEDIFF(day, MAX(p.created_at), GETDATE()) as dias_ultima_compra,
-            -- Score de recompra baseado em frequência e recência
-            (COUNT(DISTINCT p.id) * 10.0 / DATEDIFF(day, MAX(p.created_at), GETDATE())) as score_recompra
-        FROM pedidos p
-        INNER JOIN items i ON p.id = i.pedido_id
-        INNER JOIN clientes c ON p.cliente_id = c.id
-        INNER JOIN produtos pr ON i.produto_id = pr.id
-        LEFT JOIN categorias cat ON pr.categoria_id = cat.id
-        WHERE c.cnpj = @P1
-          AND p.status_pedido IN ('integrado', 'Confirmado ERP', 'Faturado')
-          AND p.created_at >= DATEADD(day, -@P2, GETDATE())
-          AND c.deleted_at IS NULL
-        GROUP BY i.codigo_produto, i.descricao_produto, cat.nome
-        HAVING COUNT(DISTINCT p.id) >= 2  -- Pelo menos 2 compras
+        -- 🎯 CARD 01: RECOMPRA INTELIGENTE - ALGORITMO DE IA PARA SUGESTÕES
+        -- Analisa padrão histórico de compras e sugere produtos para recompra
+        -- Baseado em frequência de compra vs tempo desde última compra
+
+        -- 🔍 CTE PRINCIPAL: ANÁLISE DE PADRÕES DE RECOMPRA
+        WITH produtos_recompra AS (
+            SELECT 
+                -- 📦 IDENTIFICAÇÃO DO PRODUTO
+                pr.codigo as codigo_produto,           -- Código único do produto
+                pr.descricao as descricao_produto,     -- Nome completo
+                cat.nome as categoria,                 -- Categoria
+                
+                -- 📊 MÉTRICAS DE COMPORTAMENTO DE COMPRA
+                COUNT(DISTINCT p.id) as frequencia_compra,  -- Quantos pedidos diferentes compraram
+                AVG(CAST(i.quantidade AS FLOAT)) as quantidade_media,  -- Quantidade média por pedido
+                AVG(i.preco_unitario * i.quantidade) as valor_medio,  -- Valor médio gasto por pedido
+                
+                -- ⏰ ANÁLISE TEMPORAL
+                DATEDIFF(day, MAX(p.created_at), GETDATE()) as dias_ultima_compra,  -- Há quantos dias foi a última compra
+                
+                -- 🎯 SCORE INTELIGENTE DE RECOMPRA (ALGORITMO PRINCIPAL)
+                -- Fórmula: Quanto mais frequente E mais recente, maior o score
+                (COUNT(DISTINCT p.id) * 10.0 / 
+                 CASE WHEN DATEDIFF(day, MAX(p.created_at), GETDATE()) > 0 
+                      THEN DATEDIFF(day, MAX(p.created_at), GETDATE()) 
+                      ELSE 1 END) as score_recompra
+                      
+            FROM pedidos p
+            INNER JOIN items i ON p.id = i.pedido_id      -- Itens do pedido
+            INNER JOIN clientes c ON p.cliente_id = c.id  -- Dados do franqueado
+            INNER JOIN produtos pr ON i.produto_id = pr.id -- Dados do produto
+            LEFT JOIN categorias cat ON pr.categoria_id = cat.id -- Categoria (opcional)
+            
+            WHERE 
+                -- 🎯 FILTROS DE QUALIDADE DOS DADOS
+                c.cnpj = @P1                                           -- Apenas este franqueado
+                AND p.status_pedido IN ('integrado', 'Confirmado ERP', 'Faturado')  -- Apenas pedidos reais/válidos
+                AND p.created_at >= DATEADD(day, -@P2, GETDATE())         -- Período de análise
+                AND c.deleted_at IS NULL                                 -- Cliente ativo
+                AND pr.status = 1                                        -- Produto ativo/disponível
+                
+            GROUP BY pr.codigo, pr.descricao, cat.nome
+            
+            -- 🔍 FILTRO DE RELEVÂNCIA: Apenas produtos com histórico mínimo
+            HAVING COUNT(DISTINCT p.id) >= 1                            -- Pelo menos 1 compra
+        )
+
+        -- 📋 RESULTADO FINAL: LISTA PRIORIZADA DE SUGESTÕES
+        SELECT TOP (@P3)
+            codigo_produto,
+            descricao_produto,
+            categoria,
+            frequencia_compra,      -- Para mostrar: "Você já comprou 3 vezes"
+            quantidade_media,       -- Para mostrar: "Média 12 unidades por pedido"
+            valor_medio,           -- Para mostrar: "Investimento médio R$ 240"
+            dias_ultima_compra,    -- Para mostrar: "Última compra há 45 dias"
+            CAST(score_recompra AS DECIMAL(10,2)) as score_recompra,  -- Score formatado
+            
+            -- 📈 CLASSIFICAÇÃO DE PRIORIDADE (PARA UX/UI)
+            CASE 
+                WHEN score_recompra >= 3.0 THEN 'ALTA'      -- Compra frequente + recente
+                WHEN score_recompra >= 1.0 THEN 'MÉDIA'     -- Padrão moderado
+                ELSE 'BAIXA'                                 -- Compra esporádica
+            END as nivel_prioridade,
+            
+            -- 💡 MENSAGEM PERSONALIZADA (PARA UX/UI)
+            CASE 
+                WHEN score_recompra >= 3.0 THEN 'Produto em reposição! Sugerimos incluir no próximo pedido.'
+                WHEN score_recompra >= 1.0 THEN 'Padrão de recompra identificado. Considere reabastecer.'
+                ELSE 'Produto já comprado anteriormente. Avalie necessidade atual.'
+            END as sugestao_inteligente
+
+        FROM produtos_recompra
         ORDER BY score_recompra DESC
-        OFFSET 0 ROWS FETCH NEXT @P3 ROWS ONLY
     "#;
     
     let mut query = Query::new(sql_recompra);
@@ -139,6 +198,8 @@ pub async fn recompra_inteligente(
                     valor_medio: row.get::<f64, _>(5).unwrap_or(0.0),
                     dias_ultima_compra: row.get::<i32, _>(6).unwrap_or(0),
                     score_recompra: row.get::<f64, _>(7).unwrap_or(0.0),
+                    nivel_prioridade: row.get::<&str, _>(8).unwrap_or("BAIXA").to_string(),
+                    sugestao_inteligente: row.get::<&str, _>(9).unwrap_or("Produto disponível").to_string(),
                     produtos_relacionados: Vec::new(), // Será preenchido na próxima query
                 });
             }
@@ -277,79 +338,229 @@ pub async fn oportunidades_rede(
         }
     };
     
-    // Query para buscar oportunidades comparando com média do grupo ABC
+    // 🏆 CARD 02: OPORTUNIDADES NA REDE 
+    // Query otimizada baseada no documento oficial do Card 02
+    // CORREÇÃO: Separadas as agregações aninhadas em CTEs independentes
     let sql_oportunidades = r#"
-        WITH media_franqueado AS (
+        -- 🏆 CARD 02: OPORTUNIDADES NA REDE 
+        -- Compara performance do franqueado vs média do seu grupo ABC
+        -- CORREÇÃO: Separadas as agregações aninhadas em CTEs independentes
+
+        -- 🏅 ETAPA 1: CLASSIFICAÇÃO ABC DE TODOS OS FRANQUEADOS
+        WITH volume_por_franqueado AS (
+            -- Calcula volume total de cada franqueado no período
             SELECT 
-                i.codigo_produto,
-                i.descricao_produto,
+                c.cnpj,
+                c.nome as nome_franqueado,
+                SUM(i.quantidade) as total_quantidade_periodo
+                
+            FROM pedidos p
+            INNER JOIN items i ON p.id = i.pedido_id
+            INNER JOIN clientes c ON p.cliente_id = c.id
+            WHERE 
+                p.status_pedido IN ('integrado', 'Confirmado ERP', 'Faturado')
+                AND p.created_at >= DATEADD(day, -@P2, GETDATE())
+                AND c.deleted_at IS NULL
+            GROUP BY c.cnpj, c.nome
+        ),
+
+        classificacao_abc AS (
+            -- Classifica os franqueados em grupos A, B, C baseado no volume
+            SELECT 
+                cnpj,
+                nome_franqueado,
+                total_quantidade_periodo,
+                
+                -- 📊 ALGORITMO DE SEGMENTAÇÃO NTILE(3)
+                NTILE(3) OVER (ORDER BY total_quantidade_periodo DESC) as percentil,
+                
+                -- 🎯 CLASSIFICAÇÃO ABC
+                CASE 
+                    WHEN NTILE(3) OVER (ORDER BY total_quantidade_periodo DESC) = 1 THEN 'A'  -- Top 33%
+                    WHEN NTILE(3) OVER (ORDER BY total_quantidade_periodo DESC) = 2 THEN 'B'  -- Meio 33%
+                    ELSE 'C'                                                                   -- Últimos 33%
+                END as grupo_abc
+                
+            FROM volume_por_franqueado
+        ),
+
+        -- 🎯 PERFORMANCE DO FRANQUEADO ESPECÍFICO POR PRODUTO  
+        performance_franqueado AS (
+            SELECT 
+                pr.codigo as codigo_produto,
+                pr.descricao as descricao_produto,
                 cat.nome as categoria,
-                AVG(CAST(i.quantidade AS FLOAT)) as media_franqueado,
-                SUM(i.quantidade) as total_franqueado
+                abc.grupo_abc,                                    -- Grupo ABC do franqueado
+                SUM(i.quantidade) as quantidade_franqueado,       -- Total comprado pelo franqueado
+                AVG(i.preco_unitario) as preco_medio_franqueado, -- Preço médio que ele paga
+                COUNT(DISTINCT p.id) as pedidos_franqueado        -- Quantos pedidos ele fez
+                
             FROM pedidos p
             INNER JOIN items i ON p.id = i.pedido_id
             INNER JOIN clientes c ON p.cliente_id = c.id
             INNER JOIN produtos pr ON i.produto_id = pr.id
             LEFT JOIN categorias cat ON pr.categoria_id = cat.id
-            WHERE c.cnpj = @P1
-              AND p.status_pedido IN ('integrado', 'Confirmado ERP', 'Faturado')
-              AND p.created_at >= DATEADD(day, -@P2, GETDATE())
-              AND c.deleted_at IS NULL
-            GROUP BY i.codigo_produto, i.descricao_produto, cat.nome
-        ),
-        classificacao_abc AS (
-            SELECT 
-                c.cnpj,
-                CASE 
-                    WHEN NTILE(3) OVER (ORDER BY SUM(i.quantidade) DESC) = 1 THEN 'A'
-                    WHEN NTILE(3) OVER (ORDER BY SUM(i.quantidade) DESC) = 2 THEN 'B'
-                    ELSE 'C'
-                END as grupo_abc
-            FROM pedidos p
-            INNER JOIN items i ON p.id = i.pedido_id
-            INNER JOIN clientes c ON p.cliente_id = c.id
-            WHERE p.status_pedido IN ('integrado', 'Confirmado ERP', 'Faturado')
-              AND p.created_at >= DATEADD(day, -@P2, GETDATE())
-              AND c.deleted_at IS NULL
-            GROUP BY c.cnpj
-        ),
-        media_rede AS (
-            SELECT 
-                i.codigo_produto,
-                AVG(CAST(i.quantidade AS FLOAT)) as media_rede,
-                COUNT(DISTINCT c.cnpj) as franqueados_grupo
-            FROM pedidos p
-            INNER JOIN items i ON p.id = i.pedido_id
-            INNER JOIN clientes c ON p.cliente_id = c.id
             INNER JOIN classificacao_abc abc ON c.cnpj = abc.cnpj
-            WHERE abc.grupo_abc = @P3
-              AND p.status_pedido IN ('integrado', 'Confirmado ERP', 'Faturado')
-              AND p.created_at >= DATEADD(day, -@P2, GETDATE())
-              AND c.deleted_at IS NULL
-            GROUP BY i.codigo_produto
-            HAVING COUNT(DISTINCT c.cnpj) >= 3  -- Pelo menos 3 franqueados no grupo
+            
+            WHERE 
+                c.cnpj = @P1                                    -- Apenas este franqueado
+                AND p.status_pedido IN ('integrado', 'Confirmado ERP', 'Faturado')
+                AND p.created_at >= DATEADD(day, -@P2, GETDATE())
+                AND c.deleted_at IS NULL
+                AND pr.status = 1                                 -- Produtos ativos
+                
+            GROUP BY pr.codigo, pr.descricao, cat.nome, abc.grupo_abc
+        ),
+
+        -- 📊 ETAPA 2A: VOLUME POR FRANQUEADO E PRODUTO (para calcular média depois)
+        volume_por_franqueado_produto AS (
+            SELECT 
+                pr.codigo as codigo_produto,
+                c.cnpj,
+                abc.grupo_abc,
+                SUM(i.quantidade) as quantidade_franqueado_produto  -- Volume deste franqueado neste produto
+            
+            FROM pedidos p
+            INNER JOIN items i ON p.id = i.pedido_id
+            INNER JOIN clientes c ON p.cliente_id = c.id
+            INNER JOIN produtos pr ON i.produto_id = pr.id
+            INNER JOIN classificacao_abc abc ON c.cnpj = abc.cnpj
+            
+            WHERE 
+                p.status_pedido IN ('integrado', 'Confirmado ERP', 'Faturado')
+                AND p.created_at >= DATEADD(day, -@P2, GETDATE())
+                AND c.deleted_at IS NULL
+                AND pr.status = 1
+                AND c.cnpj != @P1  -- 🎯 EXCLUIR o próprio franqueado da média
+                
+            GROUP BY pr.codigo, c.cnpj, abc.grupo_abc
+        ),
+
+        -- 📊 ETAPA 2B: MÉDIA DA REDE POR PRODUTO E GRUPO (sem agregação aninhada)
+        media_rede_por_grupo AS (
+            SELECT 
+                codigo_produto,
+                grupo_abc,
+                
+                -- ✅ CORREÇÃO: Média calculada diretamente, sem agregação aninhada
+                AVG(CAST(quantidade_franqueado_produto AS FLOAT)) as media_quantidade_grupo,
+                COUNT(DISTINCT cnpj) as franqueados_compraram,
+                SUM(quantidade_franqueado_produto) as total_rede_produto
+                
+            FROM volume_por_franqueado_produto
+            GROUP BY codigo_produto, grupo_abc
+            HAVING COUNT(DISTINCT cnpj) >= 2  -- Pelo menos 2 franqueados compraram
+        ),
+
+        -- 🔍 IDENTIFICAÇÃO DE OPORTUNIDADES
+        oportunidades_identificadas AS (
+            SELECT 
+                pf.codigo_produto,
+                pf.descricao_produto,
+                pf.categoria,
+                pf.grupo_abc,
+                
+                -- 📊 DADOS DO FRANQUEADO
+                pf.quantidade_franqueado,
+                pf.preco_medio_franqueado,
+                pf.pedidos_franqueado,
+                
+                -- 📊 DADOS DA REDE (BENCHMARK)
+                mr.media_quantidade_grupo,
+                mr.franqueados_compraram,
+                
+                -- 🎯 CÁLCULO DA DIFERENÇA PERCENTUAL
+                -- Negativo = OPORTUNIDADE (está abaixo da média)
+                CASE 
+                    WHEN mr.media_quantidade_grupo > 0 
+                    THEN ((pf.quantidade_franqueado - mr.media_quantidade_grupo) / mr.media_quantidade_grupo) * 100.0
+                    ELSE 0
+                END as diferenca_percentual,
+                
+                -- 💰 POTENCIAL ADICIONAL (Quantas unidades a mais poderia vender)
+                CASE 
+                    WHEN mr.media_quantidade_grupo > pf.quantidade_franqueado 
+                    THEN mr.media_quantidade_grupo - pf.quantidade_franqueado
+                    ELSE 0
+                END as potencial_adicional_unidades,
+                
+                -- 💸 IMPACTO FINANCEIRO (Valor da oportunidade)
+                CASE 
+                    WHEN mr.media_quantidade_grupo > pf.quantidade_franqueado 
+                    THEN (mr.media_quantidade_grupo - pf.quantidade_franqueado) * pf.preco_medio_franqueado
+                    ELSE 0
+                END as impacto_financeiro_estimado
+                
+            FROM performance_franqueado pf
+            INNER JOIN media_rede_por_grupo mr ON pf.codigo_produto = mr.codigo_produto 
+                                              AND pf.grupo_abc = mr.grupo_abc
+            
+            -- 🎯 FILTRO: Apenas onde há OPORTUNIDADE real (está abaixo da média)
+            WHERE mr.media_quantidade_grupo > pf.quantidade_franqueado
+        ),
+
+        -- 🏆 CLASSIFICAÇÃO POR PRIORIDADE
+        oportunidades_priorizadas AS (
+            SELECT *,
+                -- 🎯 ALGORITMO DE PRIORIZAÇÃO
+                -- Combina: diferença percentual + impacto financeiro + popularidade
+                (ABS(diferenca_percentual) * 0.5 +                              -- 50% peso: quão abaixo está
+                 (impacto_financeiro_estimado / 100.0) * 0.3 +                  -- 30% peso: impacto financeiro
+                 (CAST(franqueados_compraram AS FLOAT) / 81.0 * 100.0) * 0.2    -- 20% peso: popularidade na rede
+                ) as score_prioridade,
+                
+                -- 📈 CLASSIFICAÇÃO DE PRIORIDADE  
+                CASE 
+                    WHEN ABS(diferenca_percentual) >= 50 AND impacto_financeiro_estimado >= 500 THEN 'ALTA'
+                    WHEN ABS(diferenca_percentual) >= 30 OR impacto_financeiro_estimado >= 300 THEN 'MÉDIA'
+                    ELSE 'BAIXA'
+                END as nivel_prioridade
+                
+            FROM oportunidades_identificadas
         )
-        SELECT 
-            mf.codigo_produto,
-            mf.descricao_produto,
-            mf.categoria,
-            mf.media_franqueado,
-            ISNULL(mr.media_rede, 0) as media_rede,
+
+        -- 📋 RESULTADO FINAL: RELATÓRIO DE OPORTUNIDADES PRIORIZADAS
+        SELECT TOP (@P3)
+            -- 📦 IDENTIFICAÇÃO DO PRODUTO
+            codigo_produto,
+            descricao_produto,
+            categoria,
+            grupo_abc as seu_grupo,
+            
+            -- 📊 PERFORMANCE ATUAL vs BENCHMARK
+            quantidade_franqueado as sua_quantidade,
+            CAST(media_quantidade_grupo AS DECIMAL(10,1)) as media_do_grupo,
+            CAST(diferenca_percentual AS DECIMAL(5,1)) as diferenca_percentual,
+            
+            -- 💰 OPORTUNIDADE FINANCEIRA
+            CAST(potencial_adicional_unidades AS DECIMAL(10,1)) as unidades_adicionais,
+            CAST(impacto_financeiro_estimado AS DECIMAL(10,2)) as oportunidade_reais,
+            
+            -- 🎯 ANÁLISE ESTRATÉGICA
+            franqueados_compraram as outros_franqueados_compram,
+            nivel_prioridade,
+            CAST(score_prioridade AS DECIMAL(8,2)) as score_prioridade,
+            
+            -- 💡 INSIGHT PERSONALIZADO
             CASE 
-                WHEN mr.media_rede > 0 THEN 
-                    ((mf.media_franqueado - mr.media_rede) / mr.media_rede) * 100
-                ELSE 0
-            END as diferenca_percentual,
+                WHEN ABS(diferenca_percentual) >= 50 THEN 
+                    'GRANDE OPORTUNIDADE: Você está ' + CAST(CAST(ABS(diferenca_percentual) AS INT) AS NVARCHAR) + '% abaixo da média!'
+                WHEN ABS(diferenca_percentual) >= 30 THEN 
+                    'Oportunidade identificada: +' + CAST(CAST(potencial_adicional_unidades AS INT) AS NVARCHAR) + ' unidades por período'
+                ELSE 
+                    'Pequena oportunidade de otimização'
+            END as insight,
+            
+            -- 📈 RECOMENDAÇÃO DE AÇÃO
             CASE 
-                WHEN mr.media_rede > mf.media_franqueado THEN 
-                    mr.media_rede - mf.media_franqueado
-                ELSE 0
-            END as potencial_adicional
-        FROM media_franqueado mf
-        LEFT JOIN media_rede mr ON mf.codigo_produto = mr.codigo_produto
-        WHERE mr.media_rede > mf.media_franqueado  -- Apenas oportunidades
-        ORDER BY potencial_adicional DESC
-        OFFSET 0 ROWS FETCH NEXT @P4 ROWS ONLY
+                WHEN nivel_prioridade = 'ALTA' THEN 'INCLUIR NO PRÓXIMO PEDIDO'
+                WHEN nivel_prioridade = 'MÉDIA' THEN 'AVALIAR DEMANDA LOCAL'
+                ELSE 'MONITORAR TENDÊNCIA'
+            END as recomendacao
+
+        FROM oportunidades_priorizadas
+        WHERE potencial_adicional_unidades > 0  -- Apenas oportunidades reais
+        ORDER BY score_prioridade DESC, impacto_financeiro_estimado DESC
     "#;
     
     let mut query_oport = Query::new(sql_oportunidades);
@@ -368,27 +579,21 @@ pub async fn oportunidades_rede(
         .map_err(|e| ApiError::Database(format!("Erro ao ler oportunidades: {}", e)))? {
         match item {
             QueryItem::Row(row) => {
-                let diferenca_percentual = row.get::<f64, _>(5).unwrap_or(0.0);
-                let potencial = row.get::<f64, _>(6).unwrap_or(0.0);
-                
-                let prioridade = if diferenca_percentual <= -50.0 || potencial >= 100.0 {
-                    "alta"
-                } else if diferenca_percentual <= -30.0 || potencial >= 50.0 {
-                    "media"
-                } else {
-                    "baixa"
-                };
-                
                 oportunidades.push(OportunidadeRede {
                     codigo_produto: row.get::<&str, _>(0).unwrap_or("").to_string(),
                     descricao_produto: row.get::<&str, _>(1).unwrap_or("").to_string(),
                     categoria: row.get::<&str, _>(2).map(|s| s.to_string()),
-                    media_franqueado: row.get::<f64, _>(3).unwrap_or(0.0),
-                    media_rede: row.get::<f64, _>(4).unwrap_or(0.0),
-                    diferenca_percentual,
-                    potencial_adicional: potencial,
-                    grupo_abc: grupo_abc.clone(),
-                    prioridade: prioridade.to_string(),
+                    seu_grupo: row.get::<&str, _>(3).unwrap_or("C").to_string(),
+                    sua_quantidade: row.get::<f64, _>(4).unwrap_or(0.0),
+                    media_do_grupo: row.get::<f64, _>(5).unwrap_or(0.0),
+                    diferenca_percentual: row.get::<f64, _>(6).unwrap_or(0.0),
+                    unidades_adicionais: row.get::<f64, _>(7).unwrap_or(0.0),
+                    oportunidade_reais: row.get::<f64, _>(8).unwrap_or(0.0),
+                    outros_franqueados_compram: row.get::<i32, _>(9).unwrap_or(0),
+                    nivel_prioridade: row.get::<&str, _>(10).unwrap_or("BAIXA").to_string(),
+                    score_prioridade: row.get::<f64, _>(11).unwrap_or(0.0),
+                    insight: row.get::<&str, _>(12).unwrap_or("").to_string(),
+                    recomendacao: row.get::<&str, _>(13).unwrap_or("").to_string(),
                 });
             }
             _ => {}
@@ -398,11 +603,11 @@ pub async fn oportunidades_rede(
     Ok(HttpResponse::Ok().json(json!({
         "success": true,
         "cnpj": params.cnpj,
-        "grupo_abc": grupo_abc,
         "periodo_dias": periodo_dias,
         "oportunidades": oportunidades,
         "total_oportunidades": oportunidades.len(),
-        "algoritmo": "comparacao_vs_media_grupo_abc"
+        "algoritmo": "comparacao_vs_media_grupo_abc_corrigido",
+        "versao": "card_02_oficial"
     })))
 }
 
