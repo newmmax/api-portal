@@ -172,8 +172,23 @@ pub async fn recompra_inteligente(
         ORDER BY score_recompra DESC
     "#;
     
+    // 🔧 CORREÇÃO: Normalizar CNPJ para formatação padrão
+    let cnpj_formatado = if params.cnpj.len() == 14 && !params.cnpj.contains("/") {
+        // Se CNPJ veio sem formatação (14 dígitos), adicionar formatação
+        format!("{}.{}.{}/{}-{}", 
+            &params.cnpj[0..2], 
+            &params.cnpj[2..5], 
+            &params.cnpj[5..8], 
+            &params.cnpj[8..12], 
+            &params.cnpj[12..14])
+    } else {
+        params.cnpj.clone()
+    };
+
+    log::info!("CNPJ original: {} | CNPJ formatado: {}", params.cnpj, cnpj_formatado);
+
     let mut query = Query::new(sql_recompra);
-    query.bind(&params.cnpj);
+    query.bind(&cnpj_formatado);  // Usar CNPJ formatado
     query.bind(periodo_dias);
     query.bind(limite);
     
@@ -229,7 +244,7 @@ pub async fn recompra_inteligente(
     for produto in &mut produtos_recompra {
         match buscar_produtos_relacionados(
             &mut conn2, 
-            &params.cnpj, 
+            &cnpj_formatado,  // Usar CNPJ formatado
             &produto.codigo_produto,
             periodo_dias
         ).await {
@@ -243,7 +258,8 @@ pub async fn recompra_inteligente(
     
     Ok(HttpResponse::Ok().json(json!({
         "success": true,
-        "cnpj": params.cnpj,
+        "cnpj": cnpj_formatado,  // Mostrar CNPJ formatado usado
+        "cnpj_original": params.cnpj,  // Também mostrar o original para debug
         "periodo_dias": periodo_dias,
         "produtos_recompra": produtos_recompra,
         "total_produtos": produtos_recompra.len(),
@@ -303,9 +319,25 @@ pub async fn oportunidades_rede(
         WHERE cnpj = @P2
     "#;
     
+    // 🔧 CORREÇÃO: Normalizar CNPJ e corrigir ordem dos parâmetros
+    let cnpj_formatado = if params.cnpj.len() == 14 && !params.cnpj.contains("/") {
+        // Se CNPJ veio sem formatação (14 dígitos), adicionar formatação
+        format!("{}.{}.{}/{}-{}", 
+            &params.cnpj[0..2], 
+            &params.cnpj[2..5], 
+            &params.cnpj[5..8], 
+            &params.cnpj[8..12], 
+            &params.cnpj[12..14])
+    } else {
+        params.cnpj.clone()
+    };
+
+    log::info!("Card 02 - CNPJ original: {} | CNPJ formatado: {}", 
+               params.cnpj, cnpj_formatado);
+
     let mut query_class = Query::new(sql_classificacao);
     query_class.bind(periodo_dias);
-    query_class.bind(&params.cnpj);
+    query_class.bind(&cnpj_formatado);  // Usar CNPJ formatado
     
     let result_class = query_class.query(&mut conn1).await
         .map_err(|e| ApiError::Database(format!("Erro ao classificar franqueado: {}", e)))?;
@@ -344,7 +376,7 @@ pub async fn oportunidades_rede(
     let sql_oportunidades = r#"
         -- 🏆 CARD 02: OPORTUNIDADES NA REDE 
         -- Compara performance do franqueado vs média do seu grupo ABC
-        -- CORREÇÃO: Separadas as agregações aninhadas em CTEs independentes
+        -- CORREÇÃO: Parâmetros reorganizados na ordem correta
 
         -- 🏅 ETAPA 1: CLASSIFICAÇÃO ABC DE TODOS OS FRANQUEADOS
         WITH volume_por_franqueado AS (
@@ -563,11 +595,11 @@ pub async fn oportunidades_rede(
         ORDER BY score_prioridade DESC, impacto_financeiro_estimado DESC
     "#;
     
+    // 🔧 CORREÇÃO: Parâmetros na ordem correta - P1=cnpj, P2=periodo_dias, P3=limite
     let mut query_oport = Query::new(sql_oportunidades);
-    query_oport.bind(&params.cnpj);
-    query_oport.bind(periodo_dias);
-    query_oport.bind(&grupo_abc);
-    query_oport.bind(limite);
+    query_oport.bind(&cnpj_formatado);  // @P1 - CNPJ formatado
+    query_oport.bind(periodo_dias);     // @P2 - Período em dias (int)
+    query_oport.bind(limite);           // @P3 - Limite de resultados (int)
     
     let result_oport = query_oport.query(&mut conn2).await
         .map_err(|e| ApiError::Database(format!("Erro ao buscar oportunidades: {}", e)))?;
@@ -602,7 +634,8 @@ pub async fn oportunidades_rede(
     
     Ok(HttpResponse::Ok().json(json!({
         "success": true,
-        "cnpj": params.cnpj,
+        "cnpj": cnpj_formatado,  // Mostrar CNPJ formatado usado
+        "cnpj_original": params.cnpj,  // Também mostrar o original para debug
         "periodo_dias": periodo_dias,
         "oportunidades": oportunidades,
         "total_oportunidades": oportunidades.len(),
