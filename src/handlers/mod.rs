@@ -2,12 +2,18 @@
 // Módulo principal de handlers - organiza todos os manipuladores de requisições
 
 pub mod auth_handlers;
-pub mod data_handlers;
+pub mod data_handlers;  
 pub mod query_handlers;
 pub mod portal_handlers;
 pub mod protheus_handlers;
-pub mod analytics_handlers;
-pub mod pedido_handlers;
+pub mod debug_handlers;
+
+// 🎯 ESTRUTURA MODULAR - Arquivos < 500 linhas
+pub mod analytics;     // Novo: analytics modularizado
+pub mod pedidos;       // Novo: pedidos modularizado
+
+// 🌐 NOVOS ENDPOINTS CRÍTICOS
+pub mod portal_endpoints;  // Endpoints básicos do portal
 
 use actix_web::{web, HttpResponse, Result};
 use serde_json::json;

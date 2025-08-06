@@ -1,4 +1,5 @@
 use bb8_tiberius::ConnectionManager;
+#[allow(unused_imports)] // Usado em analytics_handlers com caminho completo bb8::PooledConnection
 use bb8::{Pool, PooledConnection};
 use deadpool_postgres::{Config as PgConfig, Pool as PgPool, Runtime};
 use std::env;
@@ -18,7 +19,7 @@ pub enum DatabaseError {
 }
 
 pub type SqlServerPool = Pool<ConnectionManager>;
-pub type SqlServerConnection<'a> = PooledConnection<'a, ConnectionManager>;
+// Removido SqlServerConnection type alias não usado
 
 #[derive(Clone)]
 pub struct DatabasePools {

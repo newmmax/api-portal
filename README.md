@@ -253,6 +253,57 @@ sudo systemctl enable fc-data-api
 sudo systemctl start fc-data-api
 ```
 
+## 🔍 Sistema de Logs & Debug
+
+### Sistema de Logs Automático
+
+A API inclui um sistema avançado de logs específico para Cards Analytics que permite debug remoto sem acesso ao servidor.
+
+#### Configuração
+```bash
+# No arquivo .env (desenvolvimento)
+ENABLE_DEBUG_LOGS=true
+DEBUG_LOG_FILE=D:\PROJETOS\RUST\fc-data-api\cards_debug.log
+
+# No arquivo .env.production (produção)
+ENABLE_DEBUG_LOGS=true
+DEBUG_LOG_FILE=C:\Service\logs\cards_debug.log
+```
+
+#### Endpoints de Debug (Requerem JWT)
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/debug/logs/status` | Status do sistema de logs |
+| GET | `/debug/logs` | Visualizar logs com filtros |
+| POST | `/debug/logs/rotate` | Limpar logs antigos |
+
+#### Filtros Disponíveis
+```bash
+# Apenas erros
+GET /debug/logs?nivel=ERROR&linhas=30
+
+# CNPJ específico
+GET /debug/logs?cnpj=17311174000178&linhas=40
+
+# Card específico
+GET /debug/logs?card=oportunidades-rede&linhas=20
+
+# Por tempo
+GET /debug/logs?desde=2025-08-06T10:00:00Z
+```
+
+#### Setup Automático (Produção)
+```bash
+# Execute na pasta do projeto
+./setup_logs_producao.bat
+
+# Verifica/cria C:\Service\logs\
+# Configura permissões
+# Valida configuração
+```
+
+**📋 Veja detalhes completos**: [SISTEMA_LOGS_PRODUCAO.md](SISTEMA_LOGS_PRODUCAO.md)
+
 ## 🧪 Testes
 
 ### Executar testes

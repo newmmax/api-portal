@@ -433,6 +433,243 @@
       ]
     },
     {
+      "name": "🔍 Sistema de Logs",
+      "item": [
+        {
+          "name": "Status do Sistema de Logs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has logging status\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData).to.have.property('logging_habilitado');",
+                  "    pm.expect(jsonData).to.have.property('arquivo_log');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/debug/logs/status",
+              "host": ["{{base_url}}"],
+              "path": ["debug", "logs", "status"]
+            },
+            "description": "🎯 Verificar se o sistema de logs está habilitado e funcionando. Mostra configurações do arquivo de log."
+          },
+          "response": []
+        },
+        {
+          "name": "Visualizar Logs Recentes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has logs data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData).to.have.property('total_logs');",
+                  "    pm.expect(jsonData).to.have.property('logs_completos');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/debug/logs?linhas=50",
+              "host": ["{{base_url}}"],
+              "path": ["debug", "logs"],
+              "query": [
+                {
+                  "key": "linhas",
+                  "value": "50",
+                  "description": "Número de linhas para exibir (padrão: 100)"
+                },
+                {
+                  "key": "nivel",
+                  "value": "",
+                  "description": "Filtrar por nível: ERROR, INFO, DEBUG",
+                  "disabled": true
+                },
+                {
+                  "key": "card",
+                  "value": "",
+                  "description": "Filtrar por card específico",
+                  "disabled": true
+                },
+                {
+                  "key": "cnpj",
+                  "value": "",
+                  "description": "Filtrar por CNPJ específico",
+                  "disabled": true
+                },
+                {
+                  "key": "desde",
+                  "value": "",
+                  "description": "Data/hora desde (ISO format)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "🔍 Visualizar logs dos Cards Analytics com filtros. Permite debug remoto sem acessar servidor."
+          },
+          "response": []
+        },
+        {
+          "name": "Filtrar Logs - Apenas Erros",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response filtered by ERROR level\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.filtros_aplicados.nivel).to.eql('ERROR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/debug/logs?nivel=ERROR&linhas=30",
+              "host": ["{{base_url}}"],
+              "path": ["debug", "logs"],
+              "query": [
+                {
+                  "key": "nivel",
+                  "value": "ERROR",
+                  "description": "Mostrar apenas logs de erro"
+                },
+                {
+                  "key": "linhas",
+                  "value": "30",
+                  "description": "Últimas 30 linhas"
+                }
+              ]
+            },
+            "description": "🚨 Filtrar apenas logs de ERRO para debug rápido de problemas."
+          },
+          "response": []
+        },
+        {
+          "name": "Filtrar Logs por CNPJ",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/debug/logs?cnpj=17311174000178&linhas=40",
+              "host": ["{{base_url}}"],
+              "path": ["debug", "logs"],
+              "query": [
+                {
+                  "key": "cnpj",
+                  "value": "17311174000178",
+                  "description": "CNPJ específico para debug"
+                },
+                {
+                  "key": "linhas",
+                  "value": "40",
+                  "description": "Últimas 40 linhas"
+                }
+              ]
+            },
+            "description": "🎯 Debug específico para um CNPJ que está apresentando problemas."
+          },
+          "response": []
+        },
+        {
+          "name": "Rotacionar Logs (Limpar)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Logs rotated successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData).to.have.property('mantidas');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/debug/logs/rotate",
+              "host": ["{{base_url}}"],
+              "path": ["debug", "logs", "rotate"]
+            },
+            "description": "🧹 Limpar logs antigos mantendo apenas as últimas 1000 linhas. Use quando o arquivo ficar muito grande."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Exemplos de Uso",
       "item": [
         {

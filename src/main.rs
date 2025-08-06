@@ -10,6 +10,7 @@ mod database;
 mod errors;
 mod handlers;
 mod models;
+mod logging;
 
 use crate::config::Settings;
 use crate::database::DatabasePools;
@@ -101,13 +102,16 @@ async fn main() -> std::io::Result<()> {
                     .service(
                         web::scope("/portal")
                             .wrap(auth::JwtMiddleware)
+                            // 🎯 NOVOS ENDPOINTS CRÍTICOS DO PORTAL
+                            .route("/franqueados", web::get().to(handlers::portal_endpoints::listar_franqueados))
+                            .route("/franqueados/buscar", web::get().to(handlers::portal_endpoints::buscar_franqueados))
+                            .route("/franqueados/{cnpj}", web::get().to(handlers::portal_endpoints::buscar_franqueado))
+                            .route("/produtos/{codigo}", web::get().to(handlers::portal_endpoints::buscar_produto))
+                            .route("/produtos/buscar", web::get().to(handlers::portal_endpoints::buscar_produtos))
+                            
+                            // ✅ ENDPOINTS EXISTENTES
                             .route("/query", web::post().to(handlers::portal_handlers::query_portal))
                             .route("/produtos", web::get().to(handlers::portal_handlers::listar_produtos_por_grupo))
-                            .route("/pedidos", web::post().to(handlers::pedido_handlers::criar_pedido))
-                            .route("/pedidos/{id}", web::get().to(handlers::pedido_handlers::buscar_pedido))
-                            .route("/pedidos/{id}", web::put().to(handlers::pedido_handlers::atualizar_pedido))
-                            .route("/pedidos/{id}", web::delete().to(handlers::pedido_handlers::deletar_pedido))
-                            .route("/pedidos/{id}/confirmar", web::post().to(handlers::pedido_handlers::confirmar_pedido))
                     )
                     
                     // Rotas do Protheus (protegidas por JWT)
@@ -122,14 +126,50 @@ async fn main() -> std::io::Result<()> {
                     .service(
                         web::scope("/analytics")
                             .wrap(auth::JwtMiddleware)
-                            .route("/cliente/{cnpj}/360", web::get().to(handlers::analytics_handlers::analytics_cliente_360))
-                            .route("/produtos/{id}/correlacoes", web::get().to(handlers::analytics_handlers::correlacoes_produto))
-                            .route("/recompra-inteligente", web::get().to(handlers::analytics_handlers::recompra_inteligente))
-                            .route("/oportunidades-rede", web::get().to(handlers::analytics_handlers::oportunidades_rede))
+                            // 🎯 NOVOS ENDPOINTS CRÍTICOS - Estrutura modular
+                            .route("/pedido/oportunidades", web::post().to(handlers::analytics::analisar_pedido_oportunidades))
+                            .route("/efetividade-sugestoes", web::get().to(handlers::analytics::buscar_efetividade_sugestoes))
+                            .route("/{card}/export", web::get().to(handlers::analytics::exportar_relatorio))
+                            
+                            // ✅ ENDPOINTS EXISTENTES - Usando estrutura modular
+                            .route("/recompra-inteligente", web::get().to(handlers::analytics::recompra_inteligente))
+                            .route("/oportunidades-rede", web::get().to(handlers::analytics::oportunidades_rede))
+                            
+                            // 📢 COMPATIBILIDADE - Endpoints legados (deprecated)
+                            .route("/cliente/{cnpj}/360", web::get().to(handlers::analytics::analytics_cliente_360))
+                            .route("/produtos/{id}/correlacoes", web::get().to(handlers::analytics::correlacoes_produto))
+                    )
+                    
+                    // 🛒 Rotas de Pedidos (protegidas por JWT) 
+                    .service(
+                        web::scope("/pedidos")
+                            .wrap(auth::JwtMiddleware)
+                            // 🎯 NOVOS ENDPOINTS CRÍTICOS
+                            .route("/gerar-com-oportunidades", web::post().to(handlers::pedidos::gerar_pedido_com_oportunidades))
+                            .route("/{id}/items/marcar-sugestao", web::post().to(handlers::pedidos::marcar_item_sugestao))
+                            
+                            // ✅ ENDPOINTS EXISTENTES CRUD
+                            .route("", web::post().to(handlers::pedidos::criar_pedido))
+                            .route("/{id}", web::get().to(handlers::pedidos::buscar_pedido))
+                            .route("/{id}", web::put().to(handlers::pedidos::atualizar_pedido))
+                            .route("/{id}", web::delete().to(handlers::pedidos::deletar_pedido))
+                            .route("/{id}/confirmar", web::post().to(handlers::pedidos::confirmar_pedido))
                     )
                     
                     // Health check público
                     .route("/health", web::get().to(handlers::health_check))
+                    
+                    // 🔍 DEBUG: Endpoints de debug 
+                    .service(
+                        web::scope("/debug")
+                            .wrap(auth::JwtMiddleware)
+                            .route("/logs", web::get().to(handlers::debug_handlers::visualizar_logs_cards))
+                            .route("/logs/rotate", web::post().to(handlers::debug_handlers::rotacionar_logs))
+                            .route("/logs/status", web::get().to(handlers::debug_handlers::status_logging))
+                    )
+                    
+                    // 🔍 DEBUG: Query debug público (sem auth para desenvolvimento)
+                    .route("/debug/query", web::get().to(handlers::data_handlers::debug_query))
             )
     })
     .bind(&bind_address)?

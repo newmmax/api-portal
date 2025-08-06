@@ -9,6 +9,7 @@ use crate::auth::Claims;
 pub struct QueryRequest {
     #[serde(alias = "query")]  // Aceita tanto "sql" quanto "query"
     pub sql: String,
+    #[allow(dead_code)] // Usado em portal_handlers.rs através de pattern matching
     pub params: Option<Vec<serde_json::Value>>,
 }
 

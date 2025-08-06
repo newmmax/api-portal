@@ -63,3 +63,20 @@ test_*_debug.*
 
 # MCP temporary files
 .mcp/temp/
+
+# Context and documentation files (temporary)
+CONTEXTO_*.md
+RESUMO_*.md
+RELATORIO_*.md
+VERIFICACAO_*.md
+GAPS_*.md
+IMPLEMENTACAO_*.md
+SISTEMA_*.md
+docs/plan/tasks/RESUMO-SESSAO-*.md
+
+# Old backup files
+*.rs.old
+*.old
+
+# Batch scripts temporários
+setup_*.bat

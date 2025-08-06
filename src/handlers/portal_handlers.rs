@@ -17,6 +17,7 @@ pub struct QueryRequest {
 #[derive(Debug, Deserialize)]
 pub struct ProdutosParams {
     pub cliente_id: Option<i32>,
+    #[allow(dead_code)] // Usado indiretamente pela query SQL (pp.grupo_venda = c.grupo_venda)
     pub grupo_venda: Option<String>,
     pub apenas_ativos: Option<bool>,
     pub limite: Option<i32>,
@@ -303,23 +304,29 @@ fn convert_sqlserver_value_to_json(row: &Row, col_index: usize, sql_type: tiberi
                 .unwrap_or(json!(null))
         },
         
-        // 📅 TIPOS DATA/HORA SQL Server
+        // 📅 TIPOS DATA/HORA SQL Server (CORRIGIDO para suportar NULL)
         ColumnType::Datetime | ColumnType::Datetime2 => {
-            row.get::<NaiveDateTime, _>(col_index)
-                .map(|dt| json!(dt.format("%Y-%m-%d %H:%M:%S").to_string()))
-                .unwrap_or(json!(null))
+            // 🛡️ CORREÇÃO CRÍTICA: get() já retorna Option<T>, verificar NULL explicitamente
+            match row.get::<NaiveDateTime, _>(col_index) {
+                Some(dt) => json!(dt.format("%Y-%m-%d %H:%M:%S").to_string()),
+                None => json!(null),
+            }
         },
         
         ColumnType::Daten => {
-            row.get::<chrono::NaiveDate, _>(col_index)
-                .map(|d| json!(d.to_string()))
-                .unwrap_or(json!(null))
+            // 🛡️ CORREÇÃO: get() já retorna Option<T>
+            match row.get::<chrono::NaiveDate, _>(col_index) {
+                Some(d) => json!(d.to_string()),
+                None => json!(null),
+            }
         },
         
         ColumnType::Timen => {
-            row.get::<chrono::NaiveTime, _>(col_index)
-                .map(|t| json!(t.to_string()))
-                .unwrap_or(json!(null))
+            // 🛡️ CORREÇÃO: get() já retorna Option<T>
+            match row.get::<chrono::NaiveTime, _>(col_index) {
+                Some(t) => json!(t.to_string()),
+                None => json!(null),
+            }
         },
                 
         // 🔐 TIPOS IDENTIFICADORES

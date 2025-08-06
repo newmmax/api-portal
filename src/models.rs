@@ -201,10 +201,15 @@ pub struct Cliente {
 pub struct CriarPedidoRequest {
     pub codigo_cliente: String,
     pub loja_cliente: String,
+    #[allow(dead_code)] // TODO: Implementar lógica de data de emissão
     pub emissao: String,
+    #[allow(dead_code)] // TODO: Implementar diferentes naturezas de pedido
     pub natureza: Option<String>, // Default: "10212"
+    #[allow(dead_code)] // TODO: Implementar sistema de mensagens
     pub mensagem: Option<String>,
+    #[allow(dead_code)] // TODO: Implementar regras de condição de pagamento
     pub regra_condicao_pagamento_id: i32,
+    #[allow(dead_code)] // TODO: Implementar cálculo de frete
     pub regra_frete_id: i32,
     pub items: Vec<ItemPedidoRequest>,
 }
