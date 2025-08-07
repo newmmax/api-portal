@@ -96,6 +96,7 @@ async fn main() -> std::io::Result<()> {
                             .route("/vendas", web::get().to(data_handlers::get_vendas))
                             .route("/vendas/detalhes", web::get().to(data_handlers::get_vendas_detalhadas))
                             .route("/query", web::post().to(handlers::query_handlers::execute_custom_query))
+                            .route("/query-dynamic", web::post().to(handlers::dynamic_query_handler::execute_dynamic_query))  // 🚀 NOVO: Query dinâmica
                     )
                     
                     // Rotas do Portal (protegidas por JWT)

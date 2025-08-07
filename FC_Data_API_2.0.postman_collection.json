@@ -1,0 +1,858 @@
+{
+  "info": {
+    "_postman_id": "fc-data-api-collection-v2",
+    "name": "FC Data API 2.0 - Sistema Completo",
+    "description": "Coleção COMPLETA e ATUALIZADA para FC Data API - Sistema integrado de consulta PostgreSQL + Portal + Protheus + Analytics + Pedidos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "fc-data-api-v2",
+    "version": "2.0.0"
+  },
+  "item": [
+    {
+      "name": "🔐 Autenticação",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Capturar token automaticamente",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.token) {",
+                  "        pm.collectionVariables.set(\"token\", jsonData.token);",
+                  "        pm.environment.set(\"token\", jsonData.token);",
+                  "        console.log(\"🎯 Token JWT salvo:\", jsonData.token.substring(0, 20) + \"...\");",
+                  "        console.log(\"⏰ Expira em:\", jsonData.expires_in + \" segundos\");",
+                  "    }",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.expect(jsonData).to.have.property('expires_in');",
+                  "    pm.expect(jsonData).to.have.property('token_type');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"ArtesanalFC2025!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "🔑 Autenticação JWT - Token válido por 24 horas"
+          }
+        },
+        {
+          "name": "Validar Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/validate",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "validate"]
+            },
+            "description": "✅ Validar token JWT ativo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Data FC (PostgreSQL)",
+      "item": [
+        {
+          "name": "Vendas - Query Principal",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/data/vendas?data_inicio=2024-01-01&data_fim=2025-12-31&limite=10",
+              "host": ["{{base_url}}"],
+              "path": ["data", "vendas"],
+              "query": [
+                {
+                  "key": "data_inicio",
+                  "value": "2024-01-01",
+                  "description": "Data inicial (YYYY-MM-DD)"
+                },
+                {
+                  "key": "data_fim",
+                  "value": "2025-12-31",
+                  "description": "Data final (YYYY-MM-DD)"
+                },
+                {
+                  "key": "limite",
+                  "value": "10",
+                  "description": "Máximo de registros"
+                },
+                {
+                  "key": "empresa",
+                  "value": "",
+                  "description": "Filtrar por empresa",
+                  "disabled": true
+                },
+                {
+                  "key": "filial",
+                  "value": "",
+                  "description": "Código da filial",
+                  "disabled": true
+                },
+                {
+                  "key": "vendedor",
+                  "value": "",
+                  "description": "Código do vendedor",
+                  "disabled": true
+                },
+                {
+                  "key": "produto",
+                  "value": "",
+                  "description": "Nome do produto (ILIKE)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "📈 Query principal - Dados de vendas com JOIN de 7 tabelas"
+          }
+        },
+        {
+          "name": "Vendas Detalhadas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/data/vendas/detalhes?limite=5",
+              "host": ["{{base_url}}"],
+              "path": ["data", "vendas", "detalhes"],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "🔍 Vendas com detalhes completos"
+          }
+        },
+        {
+          "name": "Query Customizada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT COUNT(*) as total_vendas, SUM(CAST(vrrcb as numeric)) as valor_total FROM fc14100 WHERE itemid IS NOT NULL LIMIT 10\",\n  \"params\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/data/query",
+              "host": ["{{base_url}}"],
+              "path": ["data", "query"]
+            },
+            "description": "🛠️ Executar SQL customizado no PostgreSQL FC"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏢 Portal (SQL Server)",
+      "item": [
+        {
+          "name": "Listar Franqueados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/portal/franqueados?limite=10",
+              "host": ["{{base_url}}"],
+              "path": ["portal", "franqueados"],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "🏪 Lista todos os franqueados ativos"
+          }
+        },
+        {
+          "name": "Buscar Franqueados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/portal/franqueados/buscar?termo=nome_fantasia&limite=5",
+              "host": ["{{base_url}}"],
+              "path": ["portal", "franqueados", "buscar"],
+              "query": [
+                {
+                  "key": "termo",
+                  "value": "nome_fantasia",
+                  "description": "Busca por nome ou razão social"
+                },
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "🔍 Buscar franqueados por termo"
+          }
+        },
+        {
+          "name": "Franqueado por CNPJ",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/portal/franqueados/12345678000123",
+              "host": ["{{base_url}}"],
+              "path": ["portal", "franqueados", "12345678000123"]
+            },
+            "description": "🎯 Buscar franqueado específico por CNPJ"
+          }
+        },
+        {
+          "name": "Produto por Código",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/portal/produtos/12345",
+              "host": ["{{base_url}}"],
+              "path": ["portal", "produtos", "12345"]
+            },
+            "description": "📦 Buscar produto específico por código"
+          }
+        },
+        {
+          "name": "Buscar Produtos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/portal/produtos/buscar?termo=dipirona&limite=10",
+              "host": ["{{base_url}}"],
+              "path": ["portal", "produtos", "buscar"],
+              "query": [
+                {
+                  "key": "termo",
+                  "value": "dipirona",
+                  "description": "Nome do produto"
+                },
+                {
+                  "key": "limite",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "🔍 Buscar produtos por nome"
+          }
+        },
+        {
+          "name": "Query Portal Customizada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT TOP 5 cnpj, nome_fantasia FROM franqueados WHERE ativo = 1\",\n  \"params\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/portal/query",
+              "host": ["{{base_url}}"],
+              "path": ["portal", "query"]
+            },
+            "description": "🛠️ SQL customizado no Portal"
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Protheus (SQL Server)",
+      "item": [
+        {
+          "name": "Query Protheus",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT TOP 10 * FROM SA1010 WHERE A1_MSBLQL != '1'\",\n  \"params\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protheus/query",
+              "host": ["{{base_url}}"],
+              "path": ["protheus", "query"]
+            },
+            "description": "🛠️ Query no sistema Protheus"
+          }
+        },
+        {
+          "name": "Status Pedido Protheus",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protheus/pedidos/123456/status",
+              "host": ["{{base_url}}"],
+              "path": ["protheus", "pedidos", "123456", "status"]
+            },
+            "description": "📋 Status de pedido no Protheus"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📈 Analytics",
+      "item": [
+        {
+          "name": "Análise Pedido - Oportunidades",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cnpj_cliente\": \"12345678000123\",\n  \"itens_pedido\": [\n    {\n      \"codigo_produto\": \"12345\",\n      \"quantidade\": 10,\n      \"preco_unitario\": 25.90\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/analytics/pedido/oportunidades",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "pedido", "oportunidades"]
+            },
+            "description": "🎯 Analisar oportunidades em pedidos"
+          }
+        },
+        {
+          "name": "Efetividade Sugestões",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/efetividade-sugestoes?dias=30",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "efetividade-sugestoes"],
+              "query": [
+                {
+                  "key": "dias",
+                  "value": "30",
+                  "description": "Período de análise"
+                }
+              ]
+            },
+            "description": "📊 Taxa de aceitação de sugestões"
+          }
+        },
+        {
+          "name": "Exportar Relatório",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/recompra-inteligente/export?formato=excel",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "recompra-inteligente", "export"],
+              "query": [
+                {
+                  "key": "formato",
+                  "value": "excel",
+                  "description": "excel ou csv"
+                }
+              ]
+            },
+            "description": "📁 Exportar relatórios"
+          }
+        },
+        {
+          "name": "Recompra Inteligente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/recompra-inteligente?cnpj=12345678000123&dias=60",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "recompra-inteligente"],
+              "query": [
+                {
+                  "key": "cnpj",
+                  "value": "12345678000123"
+                },
+                {
+                  "key": "dias",
+                  "value": "60"
+                }
+              ]
+            },
+            "description": "🔄 Análise de recompra de clientes"
+          }
+        },
+        {
+          "name": "Oportunidades Rede",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/oportunidades-rede?regiao=sudeste",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "oportunidades-rede"],
+              "query": [
+                {
+                  "key": "regiao",
+                  "value": "sudeste"
+                }
+              ]
+            },
+            "description": "🌐 Oportunidades por região"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛒 Pedidos",
+      "item": [
+        {
+          "name": "Gerar Pedido com Oportunidades",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cnpj_cliente\": \"12345678000123\",\n  \"vendedor_id\": 1,\n  \"itens_base\": [\n    {\n      \"codigo_produto\": \"12345\",\n      \"quantidade\": 10,\n      \"preco_unitario\": 25.90\n    }\n  ],\n  \"incluir_sugestoes\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos/gerar-com-oportunidades",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos", "gerar-com-oportunidades"]
+            },
+            "description": "🎯 Gerar pedido com sugestões IA"
+          }
+        },
+        {
+          "name": "Criar Pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cnpj_cliente\": \"12345678000123\",\n  \"vendedor_id\": 1,\n  \"itens\": [\n    {\n      \"codigo_produto\": \"12345\",\n      \"quantidade\": 5,\n      \"preco_unitario\": 25.90\n    }\n  ],\n  \"observacoes\": \"Pedido teste\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos"]
+            },
+            "description": "📝 Criar novo pedido"
+          }
+        },
+        {
+          "name": "Buscar Pedido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pedidos/123",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos", "123"]
+            },
+            "description": "🔍 Buscar pedido por ID"
+          }
+        },
+        {
+          "name": "Atualizar Pedido",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cnpj_cliente\": \"12345678000123\",\n  \"vendedor_id\": 1,\n  \"itens\": [\n    {\n      \"codigo_produto\": \"12345\",\n      \"quantidade\": 8,\n      \"preco_unitario\": 25.90\n    }\n  ],\n  \"observacoes\": \"Pedido atualizado\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos/123",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos", "123"]
+            },
+            "description": "✏️ Atualizar pedido existente"
+          }
+        },
+        {
+          "name": "Confirmar Pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pedidos/123/confirmar",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos", "123", "confirmar"]
+            },
+            "description": "✅ Confirmar pedido"
+          }
+        },
+        {
+          "name": "Alterar Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"novo_status\": \"PROCESSANDO\",\n  \"observacao\": \"Iniciando processamento\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos/123/status",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos", "123", "status"]
+            },
+            "description": "🔄 Alterar status do pedido"
+          }
+        },
+        {
+          "name": "Marcar Item como Sugestão",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"item_id\": 456,\n  \"aceito\": true,\n  \"motivo_rejeicao\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pedidos/123/items/marcar-sugestao",
+              "host": ["{{base_url}}"],
+              "path": ["pedidos", "123", "items", "marcar-sugestao"]
+            },
+            "description": "✅ Tracking de sugestões aceitas/rejeitadas"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔍 Debug & Monitoring",
+      "item": [
+        {
+          "name": "Visualizar Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/debug/logs?linhas=50",
+              "host": ["{{base_url}}"],
+              "path": ["debug", "logs"],
+              "query": [
+                {
+                  "key": "linhas",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "📋 Ver logs do sistema"
+          }
+        },
+        {
+          "name": "Status Logging",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/debug/logs/status",
+              "host": ["{{base_url}}"],
+              "path": ["debug", "logs", "status"]
+            },
+            "description": "📊 Status do sistema de logs"
+          }
+        },
+        {
+          "name": "Debug Query (SEM AUTH)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/debug/query?data_inicio=2024-01-01&limite=5",
+              "host": ["{{base_url}}"],
+              "path": ["debug", "query"],
+              "query": [
+                {
+                  "key": "data_inicio",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "🔍 Debug da query SQL principal (público)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "❤️ Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "❤️ Status da API e conexões com bancos"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Definir datas dinâmicas",
+          "const now = new Date();",
+          "const year = now.getFullYear();",
+          "const month = String(now.getMonth() + 1).padStart(2, '0');",
+          "const day = String(now.getDate()).padStart(2, '0');",
+          "",
+          "pm.collectionVariables.set('current_date', `${year}-${month}-${day}`);",
+          "pm.collectionVariables.set('current_month_start', `${year}-${month}-01`);",
+          "",
+          "// Verificar token antes de requests autenticados",
+          "const needsAuth = !pm.request.url.path.join('/').includes('health') &&",
+          "                  !pm.request.url.path.join('/').includes('debug/query') &&",
+          "                  !pm.request.url.path.join('/').includes('auth/login');",
+          "",
+          "if (needsAuth) {",
+          "    const token = pm.collectionVariables.get('token') || pm.environment.get('token');",
+          "    if (!token) {",
+          "        console.warn('⚠️ Token não encontrado! Execute Login primeiro.');",
+          "    }",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Verificar erros de autenticação",
+          "if (pm.response.code === 401) {",
+          "    console.error('❌ Token inválido ou expirado! Execute Login novamente.');",
+          "}",
+          "",
+          "// Log de resposta para debug",
+          "if (pm.response.code >= 400) {",
+          "    console.log('🚨 Status:', pm.response.code);",
+          "    console.log('📄 Response:', pm.response.text());",
+          "} else {",
+          "    console.log('✅ Status:', pm.response.code, 'OK');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "current_date",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "current_month_start",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

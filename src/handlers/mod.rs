@@ -4,6 +4,7 @@
 pub mod auth_handlers;
 pub mod data_handlers;  
 pub mod query_handlers;
+pub mod dynamic_query_handler;  // 🚀 NOVO: Query dinâmica inspirada na Rapido-SQL
 pub mod portal_handlers;
 pub mod protheus_handlers;
 pub mod debug_handlers;
